@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070b13;
+  --foreground: #f1f5f9;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Leaflet marker ping animation */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Custom scrollbar for alerts panel */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Leaflet popup override */
+.custom-leaflet-popup .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  padding: 0;
+}
+.custom-leaflet-popup .leaflet-popup-content {
+  margin: 12px 16px;
+}
+.custom-leaflet-popup .leaflet-popup-tip {
+  background: white;
+}
+
+/* --- FUTURISTIC SCI-FI DASHBOARD UTILITIES --- */
+
+/* Glowing cyber borders */
+.cyber-panel {
+  position: relative;
+  background: rgba(8, 14, 28, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.05), inset 0 0 12px rgba(59, 130, 246, 0.05);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cyber-panel:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.12), inset 0 0 16px rgba(59, 130, 246, 0.08);
+}
+
+/* Neon Corners styling */
+.cyber-corner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: #3b82f6;
+  border-style: solid;
+  pointer-events: none;
+}
+
+.cyber-corner-tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.cyber-corner-tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+.cyber-corner-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+.cyber-corner-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+/* Glowing typography classes */
+.text-glow-blue {
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.6), 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.text-glow-red {
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.6), 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 8px rgba(6, 182, 212, 0.6), 0 0 15px rgba(6, 182, 212, 0.3);
+}
+
+.text-glow-amber {
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.6), 0 0 15px rgba(245, 158, 11, 0.3);
+}
+
+/* Futuristic Scanline Overlay Animation */
+.scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    rgba(18, 24, 38, 0) 50%,
+    rgba(0, 0, 0, 0.1) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.35;
+}
+
+/* Cyber grid backgrounds */
+.cyber-grid {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite ease-in-out;
+}

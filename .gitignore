@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+*.pkl
+*.h5
+
+# Env
+.env
+*.env
+
+# Data
+backend/data/raw/
+backend/data/processed/
+
+# Node
+node_modules/
+.next/
+frontend/.next/
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
