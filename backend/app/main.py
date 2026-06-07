@@ -5,7 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
-from app.api.v1 import predictions, weather, health, locations
+from app.api.v1 import predictions, weather, health, locations, stats, disease
 
 
 @asynccontextmanager
@@ -21,6 +21,9 @@ app = FastAPI(
     title="ClimateHealth AI",
     description="Global disease outbreak prediction from weather and environmental data",
     version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
     lifespan=lifespan,
 )
 
@@ -32,7 +35,10 @@ app.add_middleware(
 )
 app.add_middleware(BaseHTTPMiddleware, dispatch=rate_limit_middleware)
 
-app.include_router(predictions.router, prefix="/api/v1")
-app.include_router(weather.router,     prefix="/api/v1")
-app.include_router(locations.router,   prefix="/api/v1")
+PREFIX = "/api/v1"
+app.include_router(predictions.router, prefix=PREFIX)
+app.include_router(weather.router,     prefix=PREFIX)
+app.include_router(locations.router,   prefix=PREFIX)
+app.include_router(stats.router,       prefix=PREFIX)
+app.include_router(disease.router,     prefix=PREFIX)
 app.include_router(health.router)
