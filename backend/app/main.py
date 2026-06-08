@@ -9,7 +9,6 @@ import httpx
 from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
-from app.ml.model_registry import download_models
 from app.api.v1 import predictions, weather, health, locations, stats, disease
 
 
@@ -18,7 +17,11 @@ async def lifespan(app: FastAPI):
     await init_redis()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    await download_models()   # pull .pkl files from GitHub Releases if missing
+    # Only attempt model download if models are missing (won't block on Fly.io since
+    # models are baked into the Docker image at build time)
+    from app.ml.model_registry import models_exist, download_models
+    if not models_exist():
+        await download_models()
     yield
     await close_redis()
 
