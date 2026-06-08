@@ -37,10 +37,26 @@ class WeatherResponse(BaseModel):
     lat: float
     lon: float
     location_name: str | None = None
+    # Core
     temperature: float
     rainfall: float
     humidity: float
     wind_speed: float
+    # Extended
+    rain_sum: float | None = None
+    wind_gusts: float | None = None
+    wind_direction: float | None = None
+    precipitation_probability: float | None = None
+    weather_code: int | None = None
+    uv_index: float | None = None
+    apparent_temperature: float | None = None
+    cloud_cover: float | None = None
+    surface_pressure: float | None = None
+    sunshine_duration: float | None = None
+    et0_evapotranspiration: float | None = None
+    is_day: int | None = None
+    sunrise: str | None = None
+    sunset: str | None = None
     fetched_at: datetime
 
     model_config = {"from_attributes": True}
@@ -52,6 +68,14 @@ class WeatherHistoryResponse(BaseModel):
     start_date: str
     end_date: str
     records: list[dict]
+
+
+class ForecastResponse(BaseModel):
+    lat: float
+    lon: float
+    location_name: str | None = None
+    days: int
+    forecast: list[dict]
 
 
 class LocationResult(BaseModel):
