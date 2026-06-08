@@ -19,11 +19,11 @@ kill_timeout = "5s"
   min_machines_running = 0
 
   [[http_service.checks]]
-    grace_period = "10s"
+    grace_period = "30s"
     interval = "30s"
     method = "GET"
     path = "/health"
-    timeout = "5s"
+    timeout = "10s"
 
 [[vm]]
   memory = "512mb"
