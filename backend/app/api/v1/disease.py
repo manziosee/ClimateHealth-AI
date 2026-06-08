@@ -1,10 +1,9 @@
 import json
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from app.core.cache import get_redis
 from app.core.config import settings
 from app.models.schemas import DiseaseDataResponse
-from app.services.disease import fetch_disease_data
-from fastapi import Depends
+from app.services.disease import fetch_disease_data, search_indicators
 
 router = APIRouter(prefix="/disease", tags=["disease"])
 
@@ -24,3 +23,9 @@ async def get_disease_data(
     response = DiseaseDataResponse(disease=disease, country=country, records=records)
     await redis.setex(cache_key, settings.DISEASE_CACHE_TTL, response.model_dump_json())
     return response
+
+
+@router.get("/indicators")
+async def search_who_indicators(keyword: str = Query(..., min_length=2)):
+    """Search WHO GHO indicator catalogue — useful for discovering disease codes."""
+    return await search_indicators(keyword)

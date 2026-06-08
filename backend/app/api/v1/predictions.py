@@ -49,9 +49,9 @@ async def create_prediction(
     if cached:
         return PredictionResponse(**json.loads(cached))
 
-    weather                    = await weather_svc.fetch_weather(body.lat, body.lon)
+    weather                     = await weather_svc.fetch_weather(body.lat, body.lon)
     location_name, country_code = await reverse_geocode(body.lat, body.lon)
-    pop_density                = await _resolve_population_density(body.population_density, country_code, redis)
+    pop_density                 = await _resolve_population_density(body.population_density, country_code, redis)
 
     result = predictor.predict(
         disease=body.disease,
@@ -62,14 +62,17 @@ async def create_prediction(
         population_density=pop_density,
     )
 
+    # Explicitly map only columns that exist on the Prediction ORM model
     record = Prediction(
         lat=body.lat,
         lon=body.lon,
         location_name=location_name,
         disease=body.disease,
         population_density=pop_density,
+        temperature=weather["temperature"],
+        rainfall=weather["rainfall"],
+        humidity=weather["humidity"],
         wind_speed=weather.get("wind_speed"),
-        **{k: v for k, v in weather.items() if k != "wind_speed"},
         **result,
     )
     db.add(record)
