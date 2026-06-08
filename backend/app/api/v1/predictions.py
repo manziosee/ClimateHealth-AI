@@ -26,16 +26,46 @@ async def _resolve_population_density(
         return provided
     if not country_code:
         return 500.0
-
     cache_key = f"wb:pop:{country_code}"
     cached = await redis.get(cache_key)
     if cached:
         return float(cached)
-
     value = await fetch_indicator(country_code, _WB_POP_DENSITY)
     result = float(value) if value else 500.0
     await redis.setex(cache_key, settings.DISEASE_CACHE_TTL, str(result))
     return result
+
+
+def _build_predict_kwargs(weather: dict, pop_density: float, disease: str) -> dict:
+    """Extract all ML features from weather dict consistently."""
+    return {
+        "disease":                    disease,
+        "temperature":                weather["temperature"],
+        "rainfall":                   weather["rainfall"],
+        "humidity":                   weather["humidity"],
+        "wind_speed":                 weather.get("wind_speed", 5.0),
+        "population_density":         pop_density,
+        "uv_index":                   weather.get("uv_index", 0.0),
+        "et0_evapotranspiration":     weather.get("et0_evapotranspiration", 0.0),
+        "precipitation_probability":  weather.get("precipitation_probability", 0.0),
+        "apparent_temperature":       weather.get("apparent_temperature"),
+    }
+
+
+def _build_record(req: PredictRequest, weather: dict, location_name, pop_density, result) -> Prediction:
+    """Build a Prediction ORM record from only DB-mapped columns."""
+    return Prediction(
+        lat=req.lat,
+        lon=req.lon,
+        location_name=location_name,
+        disease=req.disease,
+        population_density=pop_density,
+        temperature=weather["temperature"],
+        rainfall=weather["rainfall"],
+        humidity=weather["humidity"],
+        wind_speed=weather.get("wind_speed"),
+        **result,
+    )
 
 
 @router.post("", response_model=PredictionResponse, status_code=201)
@@ -50,35 +80,11 @@ async def create_prediction(
         return PredictionResponse(**json.loads(cached))
 
     weather                     = await weather_svc.fetch_weather(body.lat, body.lon)
-    location_name, country_code = await reverse_geocode(body.lat, body.lon)
+    location_name, country_code = await reverse_geocode(body.lat, body.lon, db)
     pop_density                 = await _resolve_population_density(body.population_density, country_code, redis)
+    result                      = predictor.predict(**_build_predict_kwargs(weather, pop_density, body.disease))
 
-    result = predictor.predict(
-        disease=body.disease,
-        temperature=weather["temperature"],
-        rainfall=weather["rainfall"],
-        humidity=weather["humidity"],
-        wind_speed=weather.get("wind_speed", 5.0),
-        population_density=pop_density,
-        uv_index=weather.get("uv_index", 0.0),
-        et0_evapotranspiration=weather.get("et0_evapotranspiration", 0.0),
-        precipitation_probability=weather.get("precipitation_probability", 0.0),
-        apparent_temperature=weather.get("apparent_temperature"),
-    )
-
-    # Explicitly map only columns that exist on the Prediction ORM model
-    record = Prediction(
-        lat=body.lat,
-        lon=body.lon,
-        location_name=location_name,
-        disease=body.disease,
-        population_density=pop_density,
-        temperature=weather["temperature"],
-        rainfall=weather["rainfall"],
-        humidity=weather["humidity"],
-        wind_speed=weather.get("wind_speed"),
-        **result,
-    )
+    record = _build_record(body, weather, location_name, pop_density, result)
     db.add(record)
     await db.commit()
     await db.refresh(record)
@@ -94,7 +100,7 @@ async def batch_predictions(
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
 ):
-    """Run up to 20 predictions in one request — used to seed the map on dashboard load."""
+    """Run up to 20 predictions in one request — seeds the map on dashboard load."""
     if len(body) > 20:
         raise HTTPException(status_code=422, detail="Maximum 20 predictions per batch.")
 
@@ -107,25 +113,11 @@ async def batch_predictions(
             continue
 
         weather                     = await weather_svc.fetch_weather(req.lat, req.lon)
-        location_name, country_code = await reverse_geocode(req.lat, req.lon)
+        location_name, country_code = await reverse_geocode(req.lat, req.lon, db)
         pop_density                 = await _resolve_population_density(req.population_density, country_code, redis)
+        result                      = predictor.predict(**_build_predict_kwargs(weather, pop_density, req.disease))
 
-        result = predictor.predict(
-            disease=req.disease,
-            temperature=weather["temperature"],
-            rainfall=weather["rainfall"],
-            humidity=weather["humidity"],
-            wind_speed=weather.get("wind_speed", 5.0),
-            population_density=pop_density,
-        )
-
-        record = Prediction(
-            lat=req.lat, lon=req.lon, location_name=location_name,
-            disease=req.disease, population_density=pop_density,
-            temperature=weather["temperature"], rainfall=weather["rainfall"],
-            humidity=weather["humidity"], wind_speed=weather.get("wind_speed"),
-            **result,
-        )
+        record = _build_record(req, weather, location_name, pop_density, result)
         db.add(record)
         await db.commit()
         await db.refresh(record)
@@ -137,7 +129,7 @@ async def batch_predictions(
     return results
 
 
-
+@router.get("", response_model=PaginatedPredictions)
 async def list_predictions(
     disease: str | None = None,
     risk_level: str | None = None,
@@ -145,7 +137,7 @@ async def list_predictions(
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    base_q = select(Prediction)
+    base_q  = select(Prediction)
     count_q = select(func.count()).select_from(Prediction)
 
     if disease:
@@ -155,8 +147,10 @@ async def list_predictions(
         base_q  = base_q.where(Prediction.risk_level == risk_level)
         count_q = count_q.where(Prediction.risk_level == risk_level)
 
-    total  = (await db.execute(count_q)).scalar_one()
-    items  = (await db.execute(base_q.order_by(Prediction.predicted_at.desc()).limit(limit).offset(offset))).scalars().all()
+    total = (await db.execute(count_q)).scalar_one()
+    items = (await db.execute(
+        base_q.order_by(Prediction.predicted_at.desc()).limit(limit).offset(offset)
+    )).scalars().all()
 
     return PaginatedPredictions(total=total, limit=limit, offset=offset, items=items)
 
