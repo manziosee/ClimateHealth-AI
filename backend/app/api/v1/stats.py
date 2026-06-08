@@ -11,7 +11,8 @@ router = APIRouter(prefix="/stats", tags=["stats"])
 
 @router.get("", response_model=StatsResponse)
 async def get_stats(db: AsyncSession = Depends(get_db)):
-    now   = datetime.now(timezone.utc)
+    # Use timezone-naive UTC to match Neon stored datetimes
+    now   = datetime.utcnow()
     day   = now - timedelta(hours=24)
     week  = now - timedelta(days=7)
     month = now - timedelta(days=30)

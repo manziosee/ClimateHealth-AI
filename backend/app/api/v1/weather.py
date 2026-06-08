@@ -22,7 +22,7 @@ _SNAPSHOT_DEDUP_MINUTES = 30
 
 async def _snapshot_exists(db: AsyncSession, lat: float, lon: float) -> bool:
     """Check if a snapshot for this location was written in the last 30 minutes."""
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=_SNAPSHOT_DEDUP_MINUTES)
+    cutoff = datetime.utcnow() - timedelta(minutes=_SNAPSHOT_DEDUP_MINUTES)
     result = await db.execute(
         select(func.count())
         .select_from(WeatherSnapshot)
