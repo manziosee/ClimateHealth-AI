@@ -1,0 +1,86 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci-backend.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+
+jobs:
+  ci:
+    name: Lint & Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        working-directory: backend
+
+      - name: Verify all imports resolve
+        run: |
+          python3 -c "
+          import fastapi, uvicorn, sqlalchemy, asyncpg, alembic
+          import pydantic, httpx, redis, pandas, numpy, sklearn, xgboost, joblib
+          print('All imports OK')
+          "
+        working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+
+      - name: Verify ML pipeline
+        run: |
+          python3 -c "
+          from app.ml.data_generator import generate
+          from app.ml.pipeline import engineer_features, FEATURE_COLUMNS
+          df = generate('malaria', n_samples=100)
+          X = engineer_features(df)[FEATURE_COLUMNS]
+          assert X.shape == (100, len(FEATURE_COLUMNS)), f'Feature shape mismatch: {X.shape}'
+          print(f'Pipeline OK — {len(FEATURE_COLUMNS)} features, shape {X.shape}')
+          "
+        working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+
+      - name: Verify FastAPI app loads
+        run: |
+          python3 -c "
+          import os
+          os.environ['DATABASE_URL'] = 'postgresql+asyncpg://user:pass@localhost/db'
+          os.environ['REDIS_URL'] = 'redis://localhost:6379/0'
+          from app.main import app
+          assert app.title == 'ClimateHealth AI'
+          print('FastAPI app loads OK')
+          "
+        working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+
+  deploy:
+    name: Deploy to Fly.io
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
+        working-directory: backend
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

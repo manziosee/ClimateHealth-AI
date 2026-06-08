@@ -1,0 +1,47 @@
+name: Train ML Models
+
+on:
+  schedule:
+    - cron: "0 2 1 * *"   # 1st of every month at 2am UTC
+  workflow_dispatch:        # allow manual trigger from GitHub UI
+
+jobs:
+  train:
+    name: Train XGBoost + Random Forest
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        working-directory: backend
+
+      - name: Train models
+        run: python3 -m app.ml.train
+        working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+
+      - name: Upload models as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-models
+          path: backend/app/ml/saved_models/
+          retention-days: 90
+
+      - name: Create GitHub Release with models
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: models-${{ github.run_number }}
+          name: "ML Models — Run ${{ github.run_number }}"
+          body: "Automated model training run. Models trained with XGBoost + Random Forest ensemble."
+          files: backend/app/ml/saved_models/*.pkl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

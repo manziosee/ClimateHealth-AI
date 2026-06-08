@@ -39,22 +39,39 @@ def _heuristic(disease: str, temperature: float, rainfall: float,
         score = max(0, 30 - temperature) * 0.5 + humidity * 0.2
     else:
         score = rainfall * 0.5 + population_density * 0.002
-    cases = max(0, int(score))
-    return cases, round(min(0.65, 0.4 + score / 300), 2)
+    return max(0, int(score)), round(min(0.65, 0.4 + score / 300), 2)
 
 
-def predict(disease: str, temperature: float, rainfall: float,
-            humidity: float, population_density: float,
-            wind_speed: float = 5.0) -> dict:
-
+def predict(
+    disease: str,
+    temperature: float,
+    rainfall: float,
+    humidity: float,
+    population_density: float,
+    wind_speed: float = 5.0,
+    uv_index: float = 0.0,
+    et0_evapotranspiration: float = 0.0,
+    precipitation_probability: float = 0.0,
+    apparent_temperature: float | None = None,
+) -> dict:
     month    = datetime.utcnow().month
-    features = prepare_input(temperature, rainfall, humidity, wind_speed, population_density, month)
+    features = prepare_input(
+        temperature=temperature,
+        rainfall=rainfall,
+        humidity=humidity,
+        wind_speed=wind_speed,
+        population_density=population_density,
+        month=month,
+        uv_index=uv_index,
+        et0_evapotranspiration=et0_evapotranspiration,
+        precipitation_probability=precipitation_probability,
+        apparent_temperature=apparent_temperature,
+    )
 
     xgb = _load(f"{disease}_xgb")
     rf  = _load(f"{disease}_rf")
 
     if xgb and rf:
-        # Ensemble: average both models
         raw = (float(xgb.predict(features)[0]) + float(rf.predict(features)[0])) / 2
         cases = max(0, int(np.round(raw)))
         confidence = round(min(0.97, 0.75 + (1 - min(cases, 200) / 400)), 2)

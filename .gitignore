@@ -5,8 +5,12 @@ __pycache__/
 .venv/
 venv/
 dist/
-*.pkl
-*.h5
+
+# ML models — regenerated via GitHub Actions, not committed
+backend/app/ml/saved_models/*.pkl
+backend/app/ml/saved_models/*.h5
+# Keep metrics.json in git so we can track model performance
+!backend/app/ml/saved_models/metrics.json
 
 # Env — keep .env.example, ignore real .env
 .env
@@ -27,3 +31,6 @@ frontend/.next/
 # IDE
 .vscode/
 .idea/
+
+# Fly.io
+.fly/

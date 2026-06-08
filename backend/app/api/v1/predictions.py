@@ -60,6 +60,10 @@ async def create_prediction(
         humidity=weather["humidity"],
         wind_speed=weather.get("wind_speed", 5.0),
         population_density=pop_density,
+        uv_index=weather.get("uv_index", 0.0),
+        et0_evapotranspiration=weather.get("et0_evapotranspiration", 0.0),
+        precipitation_probability=weather.get("precipitation_probability", 0.0),
+        apparent_temperature=weather.get("apparent_temperature"),
     )
 
     # Explicitly map only columns that exist on the Prediction ORM model
@@ -84,7 +88,56 @@ async def create_prediction(
     return response
 
 
-@router.get("", response_model=PaginatedPredictions)
+@router.post("/batch", response_model=list[PredictionResponse], status_code=201)
+async def batch_predictions(
+    body: list[PredictRequest],
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+):
+    """Run up to 20 predictions in one request — used to seed the map on dashboard load."""
+    if len(body) > 20:
+        raise HTTPException(status_code=422, detail="Maximum 20 predictions per batch.")
+
+    results = []
+    for req in body:
+        cache_key = f"prediction:{req.disease}:{req.lat}:{req.lon}"
+        cached = await redis.get(cache_key)
+        if cached:
+            results.append(PredictionResponse(**json.loads(cached)))
+            continue
+
+        weather                     = await weather_svc.fetch_weather(req.lat, req.lon)
+        location_name, country_code = await reverse_geocode(req.lat, req.lon)
+        pop_density                 = await _resolve_population_density(req.population_density, country_code, redis)
+
+        result = predictor.predict(
+            disease=req.disease,
+            temperature=weather["temperature"],
+            rainfall=weather["rainfall"],
+            humidity=weather["humidity"],
+            wind_speed=weather.get("wind_speed", 5.0),
+            population_density=pop_density,
+        )
+
+        record = Prediction(
+            lat=req.lat, lon=req.lon, location_name=location_name,
+            disease=req.disease, population_density=pop_density,
+            temperature=weather["temperature"], rainfall=weather["rainfall"],
+            humidity=weather["humidity"], wind_speed=weather.get("wind_speed"),
+            **result,
+        )
+        db.add(record)
+        await db.commit()
+        await db.refresh(record)
+
+        response = PredictionResponse.model_validate(record)
+        await redis.setex(cache_key, settings.PREDICTION_CACHE_TTL, response.model_dump_json())
+        results.append(response)
+
+    return results
+
+
+
 async def list_predictions(
     disease: str | None = None,
     risk_level: str | None = None,
