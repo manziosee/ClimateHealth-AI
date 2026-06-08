@@ -30,57 +30,59 @@ jobs:
         working-directory: backend
 
       - name: Verify all imports resolve
+        working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
         run: |
-          python3 -c "
+          python -c "
           import fastapi, uvicorn, sqlalchemy, asyncpg, alembic
           import pydantic, httpx, redis, pandas, numpy, sklearn, xgboost, joblib
           print('All imports OK')
           "
+
+      - name: Verify ML pipeline
         working-directory: backend
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
-
-      - name: Verify ML pipeline
         run: |
-          python3 -c "
+          python -c "
           from app.ml.data_generator import generate
           from app.ml.pipeline import engineer_features, FEATURE_COLUMNS
           df = generate('malaria', n_samples=100)
           X = engineer_features(df)[FEATURE_COLUMNS]
-          assert X.shape == (100, len(FEATURE_COLUMNS)), f'Feature shape mismatch: {X.shape}'
-          print(f'Pipeline OK — {len(FEATURE_COLUMNS)} features, shape {X.shape}')
+          assert X.shape == (100, len(FEATURE_COLUMNS))
+          print(f'Pipeline OK — {len(FEATURE_COLUMNS)} features')
           "
+
+      - name: Verify FastAPI app loads
         working-directory: backend
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
-
-      - name: Verify FastAPI app loads
+          DATABASE_URL: "postgresql+asyncpg://user:pass@localhost/db"
+          REDIS_URL: "redis://localhost:6379/0"
         run: |
-          python3 -c "
-          import os
-          os.environ['DATABASE_URL'] = 'postgresql+asyncpg://user:pass@localhost/db'
-          os.environ['REDIS_URL'] = 'redis://localhost:6379/0'
+          python -c "
           from app.main import app
           assert app.title == 'ClimateHealth AI'
           print('FastAPI app loads OK')
           "
-        working-directory: backend
-        env:
-          PYTHONPATH: ${{ github.workspace }}/backend
 
   deploy:
     name: Deploy to Fly.io
     needs: ci
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    concurrency:
+      group: fly-deploy
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy to Fly.io
-        run: flyctl deploy --remote-only --detach
+      - name: Deploy
+        run: flyctl deploy --remote-only --ha=false
         working-directory: backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
