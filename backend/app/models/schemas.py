@@ -101,6 +101,11 @@ class StatsResponse(BaseModel):
     by_disease: dict[str, int]
     avg_confidence: float
     most_predicted_disease: str | None
+    last_24h: int = 0
+    last_7d: int = 0
+    last_30d: int = 0
+    trend: str = "stable"
+    latest_high_risk_location: str | None = None
 
 
 class PaginatedPredictions(BaseModel):

@@ -1,11 +1,15 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+import httpx
+
 from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
+from app.ml.model_registry import download_models
 from app.api.v1 import predictions, weather, health, locations, stats, disease
 
 
@@ -14,11 +18,11 @@ async def lifespan(app: FastAPI):
     await init_redis()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await download_models()   # pull .pkl files from GitHub Releases if missing
     yield
     await close_redis()
 
 
-# ─── Tag descriptions shown in Swagger UI ────────────────────────────────────
 TAGS_METADATA = [
     {
         "name": "predictions",
@@ -95,6 +99,7 @@ by correlating real-time weather data with epidemiological patterns using XGBoos
 | Weather | 30 min |
 | Predictions | 1 hour |
 | Disease data | 24 hours |
+| Weather history | 24 hours |
 """,
     version="1.0.0",
     contact={
@@ -113,6 +118,43 @@ by correlating real-time weather data with epidemiological patterns using XGBoos
     lifespan=lifespan,
 )
 
+
+# ─── Global Exception Handlers ───────────────────────────────────────────────
+
+@app.exception_handler(httpx.HTTPStatusError)
+async def httpx_status_handler(request: Request, exc: httpx.HTTPStatusError):
+    return JSONResponse(
+        status_code=502,
+        content={"detail": f"Upstream API error: {exc.response.status_code} from {exc.request.url.host}"},
+    )
+
+
+@app.exception_handler(httpx.TimeoutException)
+async def httpx_timeout_handler(request: Request, exc: httpx.TimeoutException):
+    return JSONResponse(
+        status_code=504,
+        content={"detail": "Upstream API timed out. Please try again."},
+    )
+
+
+@app.exception_handler(httpx.ConnectError)
+async def httpx_connect_handler(request: Request, exc: httpx.ConnectError):
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Cannot reach external data source. Service temporarily unavailable."},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error. Please try again later."},
+    )
+
+
+# ─── Middleware ───────────────────────────────────────────────────────────────
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -120,6 +162,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(BaseHTTPMiddleware, dispatch=rate_limit_middleware)
+
+# ─── Routers ─────────────────────────────────────────────────────────────────
 
 PREFIX = "/api/v1"
 app.include_router(predictions.router, prefix=PREFIX)
@@ -130,11 +174,11 @@ app.include_router(disease.router,     prefix=PREFIX)
 app.include_router(health.router)
 
 
-# ─── Custom OpenAPI schema — adds server URLs and example responses ───────────
+# ─── Custom OpenAPI ───────────────────────────────────────────────────────────
+
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
-
     schema = get_openapi(
         title=app.title,
         version=app.version,
@@ -145,17 +189,10 @@ def custom_openapi():
         tags=TAGS_METADATA,
         routes=app.routes,
     )
-
     schema["servers"] = [
-        {"url": "http://localhost",       "description": "Docker (Nginx proxy)"},
-        {"url": "http://localhost:8000",  "description": "Local FastAPI dev server"},
+        {"url": "https://climatehealth-ai.fly.dev", "description": "Production (Fly.io)"},
+        {"url": "http://localhost:8000",             "description": "Local dev"},
     ]
-
-    # Mark all string responses as UTF-8
-    schema.setdefault("info", {})["x-logo"] = {
-        "url": "https://img.shields.io/badge/ClimateHealth_AI-0ea5e9?style=for-the-badge"
-    }
-
     app.openapi_schema = schema
     return schema
 
