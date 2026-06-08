@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 import httpx
 
@@ -198,3 +198,22 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
+
+
+# ─── Root & convenience routes ────────────────────────────────────────────────
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return {
+        "name":    "ClimateHealth AI",
+        "version": "1.0.0",
+        "status":  "online",
+        "docs":    "https://climatehealth-ai.fly.dev/api/docs",
+        "health":  "https://climatehealth-ai.fly.dev/health",
+        "api":     "https://climatehealth-ai.fly.dev/api/v1",
+    }
+
+
+@app.get("/swagger", include_in_schema=False)
+async def swagger_redirect():
+    return RedirectResponse(url="/api/docs")
