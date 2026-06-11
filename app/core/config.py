@@ -19,5 +19,9 @@ class Settings(BaseSettings):
     PREDICTION_CACHE_TTL: int = 3600
     DISEASE_CACHE_TTL: int = 86400
 
+    # AI services — optional; endpoints return 503 when empty
+    GROQ_API_KEY: str = ""
+    HUGGINGFACE_API_KEY: str = ""
+
 
 settings = Settings()

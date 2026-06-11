@@ -9,7 +9,7 @@ import httpx
 from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
-from app.api.v1 import predictions, weather, health, locations, stats, disease
+from app.api.v1 import predictions, weather, health, locations, stats, disease, ai
 
 
 @asynccontextmanager
@@ -69,6 +69,17 @@ TAGS_METADATA = [
     {
         "name": "health",
         "description": "Service health check — returns DB and Redis connectivity status with latency measurements.",
+    },
+    {
+        "name": "ai",
+        "description": (
+            "AI-powered analysis using **Groq Cloud** (Llama 3) and **HuggingFace** zero-shot inference. "
+            "Endpoints: natural-language prediction explanations (`/explain`), "
+            "climate what-if scenario simulation (`/scenario`), "
+            "disease signal detection in news/reports (`/signal`), "
+            "and symptom-to-disease classification (`/symptoms`). "
+            "All endpoints return 503 gracefully when API keys are not configured."
+        ),
     },
 ]
 
@@ -189,6 +200,7 @@ app.include_router(weather.router,     prefix=PREFIX)
 app.include_router(locations.router,   prefix=PREFIX)
 app.include_router(stats.router,       prefix=PREFIX)
 app.include_router(disease.router,     prefix=PREFIX)
+app.include_router(ai.router,          prefix=PREFIX)
 app.include_router(health.router)
 
 
