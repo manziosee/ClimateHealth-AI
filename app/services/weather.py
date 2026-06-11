@@ -57,6 +57,12 @@ def _safe(val, default=0.0):
     return val if val is not None else default
 
 
+def _estimate_humidity(precip_prob: float, rainfall: float) -> float:
+    """Estimate daily humidity from precipitation indicators (daily forecast lacks relative_humidity)."""
+    humidity = 45.0 + precip_prob * 0.40 + min(rainfall * 0.50, 30.0)
+    return round(min(95.0, max(30.0, humidity)), 1)
+
+
 async def fetch_weather(lat: float, lon: float) -> dict:
     """
     Fetch today's weather summary + current conditions from Open-Meteo.
@@ -129,14 +135,18 @@ async def fetch_forecast(lat: float, lon: float, days: int = 7) -> list[dict]:
     daily = resp.json().get("daily", {})
     records = []
     for i, date in enumerate(daily.get("time", [])):
+        precip_prob = _safe(daily.get("precipitation_probability_max", [0] * (i + 1))[i])
+        rainfall    = _safe(daily["precipitation_sum"][i])
         records.append({
-            "date":        date,
-            "temperature": (_safe(daily["temperature_2m_max"][i]) + _safe(daily["temperature_2m_min"][i])) / 2,
-            "rainfall":    _safe(daily["precipitation_sum"][i]),
-            "wind_speed":  _safe(daily["wind_speed_10m_max"][i]),
-            "uv_index":    _safe(daily.get("uv_index_max", [0] * (i + 1))[i]),
-            "weather_code": _safe(daily.get("weather_code", [0] * (i + 1))[i]),
-            "precipitation_probability": _safe(daily.get("precipitation_probability_max", [0] * (i + 1))[i]),
+            "date":                      date,
+            "temperature":               (_safe(daily["temperature_2m_max"][i]) + _safe(daily["temperature_2m_min"][i])) / 2,
+            "rainfall":                  rainfall,
+            "humidity":                  _estimate_humidity(precip_prob, rainfall),
+            "wind_speed":                _safe(daily["wind_speed_10m_max"][i]),
+            "uv_index":                  _safe(daily.get("uv_index_max", [0] * (i + 1))[i]),
+            "weather_code":              _safe(daily.get("weather_code", [0] * (i + 1))[i]),
+            "precipitation_probability": precip_prob,
+            "et0_evapotranspiration":    _safe(daily.get("et0_fao_evapotranspiration", [0] * (i + 1))[i]),
         })
     return records
 

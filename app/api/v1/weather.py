@@ -1,10 +1,8 @@
 import json
-from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, Query, HTTPException
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-import httpx
 
 from app.core.cache import get_redis
 from app.core.config import settings
@@ -48,7 +46,6 @@ async def get_weather(
     data = await weather_svc.fetch_weather(lat, lon)
     location_name, _ = await reverse_geocode(lat, lon)
 
-    # Only write snapshot if none exists in last 30 min — prevents duplicate rows
     if not await _snapshot_exists(db, lat, lon):
         snapshot = WeatherSnapshot(
             lat=lat,
@@ -88,7 +85,7 @@ async def get_forecast(
     response = ForecastResponse(
         lat=lat, lon=lon, location_name=location_name, days=days, forecast=forecast,
     )
-    await redis.setex(cache_key, 3600, response.model_dump_json())
+    await redis.setex(cache_key, settings.WEATHER_CACHE_TTL, response.model_dump_json())
     return response
 
 
@@ -100,7 +97,7 @@ async def get_weather_history(
     end_date:   str = Query(..., description="YYYY-MM-DD"),
     redis=Depends(get_redis),
 ):
-    # Cache historical data for 24h — archive data never changes
+    # Archive data never changes — cache for 24h
     cache_key = f"history:{lat}:{lon}:{start_date}:{end_date}"
     cached = await redis.get(cache_key)
     if cached:

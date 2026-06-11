@@ -12,6 +12,14 @@ class PredictRequest(BaseModel):
     population_density: float | None = Field(None, ge=0)
 
 
+class ForecastPredictRequest(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lon: float = Field(..., ge=-180, le=180)
+    disease: Literal["malaria", "flu", "cholera"] = "malaria"
+    days: int = Field(default=7, ge=1, le=16)
+    population_density: float | None = Field(None, ge=0)
+
+
 # ─── Responses ───────────────────────────────────────────────────────────────
 
 class PredictionResponse(BaseModel):
@@ -29,8 +37,47 @@ class PredictionResponse(BaseModel):
     wind_speed: float | None = None
     population_density: float | None = None
     predicted_at: datetime
+    feature_importance: dict[str, float] | None = None
 
     model_config = {"from_attributes": True}
+
+
+class ForecastDayResult(BaseModel):
+    date: str
+    temperature: float
+    rainfall: float
+    humidity: float
+    risk_level: str
+    expected_cases: int
+    confidence: float
+
+
+class DiseaseForecastResponse(BaseModel):
+    lat: float
+    lon: float
+    location_name: str | None = None
+    disease: str
+    days: int
+    feature_importance: dict[str, float] | None = None
+    forecast: list[ForecastDayResult]
+
+
+class DiseaseComparisonItem(BaseModel):
+    risk_level: str
+    expected_cases: int
+    confidence: float
+    feature_importance: dict[str, float] | None = None
+
+
+class DiseaseComparisonResponse(BaseModel):
+    lat: float
+    lon: float
+    location_name: str | None = None
+    temperature: float
+    rainfall: float
+    humidity: float
+    diseases: dict[str, DiseaseComparisonItem]
+    compared_at: datetime
 
 
 class WeatherResponse(BaseModel):
@@ -106,6 +153,10 @@ class StatsResponse(BaseModel):
     last_30d: int = 0
     trend: str = "stable"
     latest_high_risk_location: str | None = None
+
+
+class BatchPredictRequest(BaseModel):
+    predictions: list[PredictRequest] = Field(..., max_length=20)
 
 
 class PaginatedPredictions(BaseModel):

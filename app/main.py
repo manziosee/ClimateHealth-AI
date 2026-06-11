@@ -89,8 +89,23 @@ by correlating real-time weather data with epidemiological patterns using XGBoos
 | [World Bank V2](https://api.worldbank.org/v2/) | Population density + health indicators | Free |
 | [Nominatim OSM](https://nominatim.org/) | Reverse geocoding | Free |
 
+## Key Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/predictions` | POST | Single prediction with feature importance |
+| `/api/v1/predictions/batch` | POST | Up to 20 predictions in one call |
+| `/api/v1/predictions/forecast` | POST | 7–16 day disease risk ribbon |
+| `/api/v1/predictions/compare` | GET | Malaria + flu + cholera side-by-side |
+| `/api/v1/predictions/export` | GET | Download predictions as CSV |
+| `/api/v1/weather` | GET | Current weather for any lat/lon |
+| `/api/v1/weather/forecast` | GET | 1–16 day weather forecast |
+| `/api/v1/weather/history` | GET | Historical weather (back to 1940) |
+| `/api/v1/disease` | GET | WHO GHO surveillance records |
+| `/api/v1/stats` | GET | Aggregate prediction statistics |
+| `/api/v1/locations/search` | GET | City/region search |
+
 ## ML Models
-- **Phase 1 (current):** XGBoost + Random Forest ensemble — tabular features
+- **Phase 1 (current):** XGBoost + Random Forest ensemble — tabular features + feature importance
 - **Phase 2 (planned):** LSTM / Prophet — time-series 1–8 week forecasting
 
 ## Rate Limiting
@@ -104,7 +119,7 @@ by correlating real-time weather data with epidemiological patterns using XGBoos
 | Disease data | 24 hours |
 | Weather history | 24 hours |
 """,
-    version="1.0.0",
+    version="1.1.0",
     contact={
         "name":  "ClimateHealth AI",
         "url":   "https://github.com/manziosee/ClimateHealth-AI",

@@ -9,21 +9,16 @@ dist/
 # ML models — baked into Docker image at build time
 # Keep .pkl files in repo so Fly.io remote build has them
 # They are regenerated monthly via GitHub Actions train-models.yml
-!backend/app/ml/saved_models/*.pkl
-!backend/app/ml/saved_models/metrics.json
+!app/ml/saved_models/*.pkl
+!app/ml/saved_models/metrics.json
 
 # Env — keep .env.example, ignore real .env
 .env
 !.env.example
 
 # Data
-backend/data/raw/
-backend/data/processed/
-
-# Node
-node_modules/
-.next/
-frontend/.next/
+app/data/raw/
+app/data/processed/
 
 # Docker
 *.log

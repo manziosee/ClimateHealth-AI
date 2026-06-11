@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import joblib
 import numpy as np
 
-from app.ml.pipeline import prepare_input
+from app.ml.pipeline import prepare_input, FEATURE_COLUMNS
 
 MODEL_DIR = Path(__file__).parent.parent / "ml" / "saved_models"
 
@@ -25,10 +25,32 @@ def _load(name: str):
 
 
 def _risk_label(disease: str, cases: float) -> str:
-    for threshold, label in RISK_THRESHOLDS.get(disease, []):
+    thresholds = RISK_THRESHOLDS.get(disease, RISK_THRESHOLDS["malaria"])
+    for threshold, label in thresholds:
         if cases <= threshold:
             return label
-    return "Unknown"
+    return "Low"
+
+
+def _feature_importance(xgb_model, rf_model) -> dict[str, float]:
+    """Average feature importances across both models — return top 8 normalized to sum to 1."""
+    importances = np.zeros(len(FEATURE_COLUMNS))
+    n = 0
+    if xgb_model is not None and hasattr(xgb_model, "feature_importances_"):
+        importances += xgb_model.feature_importances_
+        n += 1
+    if rf_model is not None and hasattr(rf_model, "feature_importances_"):
+        importances += rf_model.feature_importances_
+        n += 1
+    if n == 0:
+        return {}
+    importances /= n
+    indexed = sorted(zip(FEATURE_COLUMNS, importances), key=lambda x: x[1], reverse=True)
+    top = indexed[:8]
+    total = sum(v for _, v in top)
+    if total == 0:
+        return {}
+    return {k: round(float(v / total), 3) for k, v in top}
 
 
 def _heuristic(disease: str, temperature: float, rainfall: float,
@@ -54,7 +76,7 @@ def predict(
     precipitation_probability: float = 0.0,
     apparent_temperature: float | None = None,
 ) -> dict:
-    month    = datetime.utcnow().month
+    month    = datetime.now(timezone.utc).month
     features = prepare_input(
         temperature=temperature,
         rainfall=rainfall,
@@ -80,9 +102,11 @@ def predict(
         confidence = round(min(0.95, 0.70 + (1 - min(cases, 200) / 400)), 2)
     else:
         cases, confidence = _heuristic(disease, temperature, rainfall, humidity, population_density)
+        xgb, rf = None, None
 
     return {
-        "expected_cases": cases,
-        "confidence":     confidence,
-        "risk_level":     _risk_label(disease, cases),
+        "expected_cases":     cases,
+        "confidence":         confidence,
+        "risk_level":         _risk_label(disease, cases),
+        "feature_importance": _feature_importance(xgb, rf),
     }

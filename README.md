@@ -13,9 +13,7 @@
 <br/>
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![Python](https://img.shields.io/badge/Python_3.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
@@ -26,48 +24,48 @@
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Live Demo](#-live-demo)
-- [Tech Stack](#-tech-stack)
-- [System Architecture](#-system-architecture)
-- [Project Structure](#-project-structure)
-- [Data Sources](#-data-sources)
-- [ML Models](#-ml-models)
-- [API Reference](#-api-reference)
-- [Quick Start](#-quick-start)
-- [Deployment](#-deployment)
-- [Environment Variables](#-environment-variables)
-- [CI/CD](#-cicd)
-- [Roadmap](#-roadmap)
+- [Overview](#overview)
+- [Live API](#live-api)
+- [Tech Stack](#tech-stack)
+- [System Architecture](#system-architecture)
+- [Project Structure](#project-structure)
+- [Data Sources](#data-sources)
+- [ML Models](#ml-models)
+- [API Reference](#api-reference)
+- [Quick Start](#quick-start)
+- [Deployment](#deployment)
+- [Environment Variables](#environment-variables)
+- [CI/CD](#cicd)
+- [Roadmap](#roadmap)
 
 ---
 
-## 🌍 Overview
+## Overview
 
-Health organizations typically **react** after disease cases rise rather than predicting outbreaks beforehand. **ClimateHealth AI** solves this by correlating real-time weather patterns with historical disease data to forecast outbreak risk weeks in advance.
+Health organizations typically **react** after disease cases rise rather than predicting outbreaks beforehand. **ClimateHealth AI** solves this by correlating real-time weather patterns with historical disease data to forecast outbreak risk weeks in advance — for any location on Earth.
 
 | Weather Signal | Disease Impact |
 |---|---|
-| 🌧️ High rainfall | More mosquito breeding → Malaria spike |
-| 💧 High humidity | Respiratory infections spread faster |
-| 🌡️ Temperature drop | Influenza outbreaks increase |
-| 🌊 Flooding events | Waterborne diseases (Cholera) surge |
+| High rainfall | More mosquito breeding → Malaria spike |
+| High humidity | Respiratory infections spread faster |
+| Temperature drop | Influenza outbreaks increase |
+| Flooding events | Waterborne diseases (Cholera) surge |
 
 **Key capabilities:**
-- 🗺️ **Global coverage** — predict for any coordinate worldwide
-- ⚡ **Real-time weather** — live data from Open-Meteo API (no API key required)
-- 🤖 **ML-powered** — XGBoost + Random Forest ensemble trained on epidemiological patterns
-- 🔴 **Risk scoring** — Low / Medium / High outbreak classification
-- 📊 **Interactive dashboard** — GIS map, trend charts, alert panels
-- 🚀 **Fully deployed** — Fly.io + Neon PostgreSQL + Upstash Redis
+- **Global coverage** — predict for any lat/lon worldwide, no region restrictions
+- **Real-time weather** — live data from Open-Meteo API (no API key required)
+- **ML ensemble** — XGBoost + Random Forest with feature importance explanations
+- **Risk scoring** — Low / Medium / High outbreak classification with confidence scores
+- **7-day forecast** — day-by-day disease risk ribbon for the coming week
+- **Disease comparison** — malaria, flu, and cholera side-by-side in one call
+- **CSV export** — download predictions for field use by NGOs and health workers
+- **Fully deployed** — Fly.io + Neon PostgreSQL + Upstash Redis
 
 ---
 
-## 🎬 Live Demo
-
-> Backend API deployed on Fly.io. Frontend runs locally via Docker.
+## Live API
 
 | URL | Description |
 |---|---|
@@ -76,97 +74,89 @@ Health organizations typically **react** after disease cases rise rather than pr
 | [https://climatehealth-ai.fly.dev/swagger](https://climatehealth-ai.fly.dev/swagger) | Redirects to Swagger UI |
 | [https://climatehealth-ai.fly.dev/api/docs](https://climatehealth-ai.fly.dev/api/docs) | Swagger UI (interactive docs) |
 | [https://climatehealth-ai.fly.dev/api/redoc](https://climatehealth-ai.fly.dev/api/redoc) | ReDoc documentation |
-| [https://climatehealth-ai.fly.dev/api/v1/predictions](https://climatehealth-ai.fly.dev/api/v1/predictions) | Predictions endpoint |
 
 **Local development:**
 ```
-http://localhost       → Full dashboard (via Docker)
-http://localhost/api   → FastAPI REST endpoints
-http://localhost/api/docs  → Swagger UI
+http://localhost:8000           → API root
+http://localhost:8000/api/docs  → Swagger UI
+http://localhost:8000/health    → Health check
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 | Technology | Purpose | Version |
 |---|---|---|
-| ![Python](https://img.shields.io/badge/-Python-3776AB?style=flat-square&logo=python&logoColor=white) **Python** | Core language | 3.13 |
-| ![FastAPI](https://img.shields.io/badge/-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) **FastAPI** | REST API framework | 0.115 |
-| ![SQLAlchemy](https://img.shields.io/badge/-SQLAlchemy-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white) **SQLAlchemy** | Async ORM | 2.0 |
-| ![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white) **Neon PostgreSQL** | Serverless database | Latest |
-| ![Redis](https://img.shields.io/badge/-Redis-DC382D?style=flat-square&logo=redis&logoColor=white) **Upstash Redis** | Caching + rate limiting | 5.0 |
-| ![Alembic](https://img.shields.io/badge/-Alembic-6BA81E?style=flat-square&logo=python&logoColor=white) **Alembic** | DB migrations | 1.13 |
+| **Python** | Core language | 3.13 |
+| **FastAPI** | REST API framework | 0.115 |
+| **SQLAlchemy** | Async ORM | 2.0 |
+| **Neon PostgreSQL** | Serverless database | Latest |
+| **Upstash Redis** | Caching + rate limiting | 5.0 |
+| **Alembic** | DB migrations | 1.13 |
 
 ### Machine Learning
 | Technology | Purpose | Version |
 |---|---|---|
-| ![XGBoost](https://img.shields.io/badge/-XGBoost-FF6600?style=flat-square&logo=xgboost&logoColor=white) **XGBoost** | Outbreak regression models | 2.1 |
-| ![scikit-learn](https://img.shields.io/badge/-scikit--learn-F7931E?style=flat-square&logo=scikitlearn&logoColor=white) **scikit-learn** | Feature pipeline + Random Forest | 1.6 |
-| ![Pandas](https://img.shields.io/badge/-Pandas-150458?style=flat-square&logo=pandas&logoColor=white) **Pandas** | Data manipulation | 2.2 |
-| ![NumPy](https://img.shields.io/badge/-NumPy-013243?style=flat-square&logo=numpy&logoColor=white) **NumPy** | Numerical computing | 2.1 |
-
-### Frontend
-| Technology | Purpose | Version |
-|---|---|---|
-| ![Next.js](https://img.shields.io/badge/-Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white) **Next.js** | React framework (App Router) | 15 |
-| ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) **TypeScript** | Type-safe frontend | 5 |
-| ![TailwindCSS](https://img.shields.io/badge/-Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white) **Tailwind CSS** | Utility-first styling | 4 |
-| ![Leaflet](https://img.shields.io/badge/-Leaflet-199900?style=flat-square&logo=leaflet&logoColor=white) **Leaflet + React-Leaflet** | Interactive GIS maps | 1.9 |
-| ![Recharts](https://img.shields.io/badge/-Recharts-22B5BF?style=flat-square&logo=recharts&logoColor=white) **Recharts** | Data visualization charts | 2 |
+| **XGBoost** | Outbreak regression models | 2.1 |
+| **scikit-learn** | Feature pipeline + Random Forest | 1.6 |
+| **Pandas** | Data manipulation | 2.2 |
+| **NumPy** | Numerical computing | 2.1 |
 
 ### Infrastructure
 | Technology | Purpose |
 |---|---|
-| ![Fly.io](https://img.shields.io/badge/-Fly.io-8B5CF6?style=flat-square&logo=flydotio&logoColor=white) **Fly.io** | Backend cloud deployment |
-| ![Docker](https://img.shields.io/badge/-Docker-2496ED?style=flat-square&logo=docker&logoColor=white) **Docker + Compose** | Local containerization |
-| ![Nginx](https://img.shields.io/badge/-Nginx-009639?style=flat-square&logo=nginx&logoColor=white) **Nginx** | Reverse proxy + routing (local) |
-| **GitHub Actions** | CI/CD pipeline — lint, test, deploy |
+| **Fly.io** | Cloud deployment |
+| **Docker + Compose** | Local containerization |
+| **GitHub Actions** | CI/CD — lint, smoke test, deploy, monthly model retraining |
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
-                        ┌─────────────────────────────────────┐
-                        │           User / Browser             │
-                        └──────────────┬──────────────────────┘
-                                       │ HTTPS
-                        ┌──────────────▼──────────────────────┐
-                        │         Fly.io (Production)          │
-                        │                                      │
-                        │   FastAPI (Python 3.13)              │
-                        │                                      │
-                        │  GET  /                → API info    │
-                        │  GET  /health          → status      │
-                        │  GET  /swagger         → docs        │
-                        │  GET  /api/docs        → Swagger UI  │
-                        │  POST /api/v1/predictions            │
-                        │  GET  /api/v1/weather                │
-                        │  GET  /api/v1/locations/search       │
-                        │  GET  /api/v1/stats                  │
-                        │  GET  /api/v1/disease                │
-                        └──────┬───────────────┬──────────────┘
-                               │               │
-               ┌───────────────▼──┐    ┌───────▼────────────┐
-               │  Upstash Redis    │    │  Neon PostgreSQL    │
-               │  (Fly.io managed) │    │  (Serverless)       │
-               │                  │    │                      │
-               │  • Weather cache │    │  • predictions       │
-               │  • Predictions   │    │  • weather_snapshots │
-               │  • Rate limiting │    │  • Alembic migrations│
-               └───────────────────┘    └────────────────────┘
-                               │
-               ┌───────────────▼────────────────────────────┐
-               │           External Data Sources             │
-               │                                             │
-               │  🌤️  Open-Meteo API   (weather, free)      │
-               │  🏥  WHO GHO API      (disease data, free)  │
-               │  📍  Nominatim OSM    (reverse geocoding)   │
-               │  🔍  Open-Meteo Geo   (location search)     │
-               │  🌍  World Bank API   (population density)  │
-               └─────────────────────────────────────────────┘
+                    ┌──────────────────────────────────────┐
+                    │          Client / Consumer            │
+                    │  (browser, curl, health app, NGO)    │
+                    └──────────────┬───────────────────────┘
+                                   │ HTTPS
+                    ┌──────────────▼───────────────────────┐
+                    │         Fly.io (Production)           │
+                    │                                       │
+                    │   FastAPI 1.1.0  (Python 3.13)        │
+                    │                                       │
+                    │  POST /api/v1/predictions             │
+                    │  POST /api/v1/predictions/batch       │
+                    │  POST /api/v1/predictions/forecast    │
+                    │  GET  /api/v1/predictions/compare     │
+                    │  GET  /api/v1/predictions/export      │
+                    │  GET  /api/v1/weather[/forecast|/history]
+                    │  GET  /api/v1/disease                 │
+                    │  GET  /api/v1/stats                   │
+                    │  GET  /api/v1/locations/search        │
+                    │  GET  /health                         │
+                    └──────┬──────────────┬────────────────┘
+                           │              │
+           ┌───────────────▼──┐   ┌───────▼────────────────┐
+           │  Upstash Redis    │   │  Neon PostgreSQL        │
+           │                  │   │                          │
+           │  Weather cache   │   │  predictions             │
+           │  Predictions     │   │  weather_snapshots       │
+           │  Rate limiting   │   │  disease_records         │
+           └───────────────────┘   │  locations (geocache)   │
+                           │       │  model_metrics           │
+                           │       └────────────────────────┘
+                           │
+           ┌───────────────▼────────────────────────────────┐
+           │            External Data Sources                │
+           │                                                 │
+           │  Open-Meteo API      weather + forecast + archive│
+           │  WHO GHO API         disease surveillance data   │
+           │  Nominatim OSM       reverse geocoding           │
+           │  Open-Meteo Geo      city/region search          │
+           │  World Bank API      population density          │
+           └─────────────────────────────────────────────────┘
 ```
 
 ### Redis Caching Strategy
@@ -174,141 +164,120 @@ http://localhost/api/docs  → Swagger UI
 | Cache Key | TTL | Description |
 |---|---|---|
 | `weather:{lat}:{lon}` | 30 min | Weather fetch per location |
-| `prediction:{disease}:{lat}:{lon}` | 1 hour | Prediction result per location |
+| `forecast:{lat}:{lon}:{days}` | 30 min | Multi-day forecast |
+| `prediction:{disease}:{lat}:{lon}` | 1 hour | Prediction result |
+| `forecast_pred:{disease}:{lat}:{lon}:{days}` | 1 hour | 7-day disease forecast |
+| `compare:{lat}:{lon}` | 1 hour | Disease comparison result |
 | `wb:pop:{country_code}` | 24 hours | World Bank population density |
+| `disease:{disease}:{country}` | 24 hours | WHO GHO data |
+| `history:{lat}:{lon}:{start}:{end}` | 24 hours | Historical weather (immutable) |
 | `rate:{ip}` | 1 min | Sliding window rate limiter (60 req/min) |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ClimateHealth-AI/
 ├── .github/
 │   └── workflows/
-│       ├── ci-backend.yml           # Lint, import checks, ML pipeline smoke test
-│       ├── deploy-backend.yml       # Auto-deploy to Fly.io on push to main
-│       └── train-models.yml         # Monthly model retraining + GitHub Release
-├── backend/
-│   ├── app/
-│   │   ├── main.py                  # FastAPI entry, lifespan, middleware, root routes
-│   │   ├── api/
-│   │   │   └── v1/
-│   │   │       ├── predictions.py   # POST/GET/DELETE predictions + batch endpoint
-│   │   │       ├── weather.py       # Current weather, forecast, historical archive
-│   │   │       ├── locations.py     # Location search via Open-Meteo Geocoding
-│   │   │       ├── stats.py         # Aggregate prediction statistics
-│   │   │       ├── disease.py       # WHO GHO disease surveillance data
-│   │   │       └── health.py        # DB + Redis health check
-│   │   ├── core/
-│   │   │   ├── config.py            # Pydantic settings from .env
-│   │   │   ├── database.py          # Async SQLAlchemy + Neon PostgreSQL
-│   │   │   ├── cache.py             # Async Redis client with graceful fallback
-│   │   │   └── middleware.py        # IP rate limiting (60 req/min)
-│   │   ├── models/
-│   │   │   ├── db_models.py         # ORM: Prediction, WeatherSnapshot
-│   │   │   └── schemas.py           # Pydantic request/response schemas
-│   │   ├── services/
-│   │   │   ├── weather.py           # Open-Meteo API client (current + forecast + archive)
-│   │   │   ├── disease.py           # WHO GHO OData API client
-│   │   │   ├── geocoding.py         # Nominatim reverse geocoding
-│   │   │   ├── predictor.py         # ML ensemble inference + heuristic fallback
-│   │   │   └── worldbank.py         # World Bank population density API
-│   │   └── ml/
-│   │       ├── pipeline.py          # Feature engineering (23 features)
-│   │       ├── data_generator.py    # Synthetic training data generator
-│   │       ├── train.py             # XGBoost + Random Forest training
-│   │       ├── model_registry.py    # Auto-download models from GitHub Releases
-│   │       └── saved_models/        # Trained .pkl files (6 models)
-│   │           ├── malaria_xgb.pkl
-│   │           ├── malaria_rf.pkl
-│   │           ├── flu_xgb.pkl
-│   │           ├── flu_rf.pkl
-│   │           ├── cholera_xgb.pkl
-│   │           ├── cholera_rf.pkl
-│   │           └── metrics.json
-│   ├── alembic/
-│   │   └── versions/
-│   │       ├── 0001_initial_tables.py
-│   │       └── 0002_add_wind_speed_and_indexes.py
-│   ├── data/
-│   │   ├── raw/                     # Raw training datasets
-│   │   └── processed/               # Processed feature datasets
-│   ├── .env.example
-│   ├── alembic.ini
-│   ├── fly.toml                     # Fly.io deployment config
-│   ├── Dockerfile
-│   └── requirements.txt
-├── frontend/
-│   ├── app/
-│   │   ├── page.tsx                 # Main dashboard page
-│   │   ├── layout.tsx               # Root layout + Leaflet CSS import
-│   │   ├── globals.css              # Global styles
-│   │   ├── types.ts                 # Shared TypeScript interfaces
-│   │   └── mockData.ts              # Offline demo seed data
-│   ├── components/
-│   │   ├── Map.tsx                  # Leaflet GIS map with outbreak markers
-│   │   ├── OutbreakCalculator.tsx   # Prediction input form
-│   │   ├── TrendsChart.tsx          # Recharts climate-disease correlation chart
-│   │   └── AlertsPanel.tsx          # Real-time alert log
-│   ├── public/                      # Static assets
-│   ├── .env.example
-│   ├── next.config.ts
-│   ├── tailwind.config.ts
-│   ├── tsconfig.json
-│   ├── package.json
-│   └── Dockerfile
-├── nginx/
-│   └── nginx.conf                   # Reverse proxy: /api/* → backend, /* → frontend
-├── docker-compose.yml               # Full local stack: backend + frontend + nginx + redis
-├── LICENSE
+│       ├── ci-backend.yml      # Lint, import checks, ML pipeline smoke test, deploy to Fly.io
+│       └── train-models.yml    # Monthly model retraining + GitHub Release with .pkl files
+├── app/
+│   ├── main.py                 # FastAPI entry, lifespan, middleware, root routes
+│   ├── api/
+│   │   └── v1/
+│   │       ├── predictions.py  # POST/GET/DELETE + batch, forecast, compare, export
+│   │       ├── weather.py      # Current weather, forecast (1–16d), historical archive
+│   │       ├── locations.py    # City/region search via Open-Meteo Geocoding
+│   │       ├── stats.py        # Aggregate prediction statistics + model metrics
+│   │       ├── disease.py      # WHO GHO disease surveillance data
+│   │       └── health.py       # DB + Redis health check with latency
+│   ├── core/
+│   │   ├── config.py           # Pydantic settings from .env
+│   │   ├── database.py         # Async SQLAlchemy + Neon PostgreSQL
+│   │   ├── cache.py            # Async Redis client with graceful NoopRedis fallback
+│   │   └── middleware.py       # IP rate limiting (60 req/min, sliding window)
+│   ├── models/
+│   │   ├── db_models.py        # ORM: Prediction, WeatherSnapshot, DiseaseRecord, LocationCache, ModelMetrics
+│   │   └── schemas.py          # Pydantic request/response schemas
+│   ├── services/
+│   │   ├── weather.py          # Open-Meteo client (current + forecast + archive)
+│   │   ├── disease.py          # WHO GHO OData API client
+│   │   ├── geocoding.py        # Nominatim reverse geocoding with DB cache
+│   │   ├── predictor.py        # ML ensemble inference + feature importance + heuristic fallback
+│   │   └── worldbank.py        # World Bank population density API
+│   └── ml/
+│       ├── pipeline.py         # Feature engineering (24 features)
+│       ├── data_generator.py   # Synthetic training data generator
+│       ├── train.py            # XGBoost + Random Forest training + DB metrics logging
+│       ├── model_registry.py   # Auto-download models from GitHub Releases
+│       └── saved_models/       # Trained .pkl files (6 models) + metrics.json
+│           ├── malaria_xgb.pkl
+│           ├── malaria_rf.pkl
+│           ├── flu_xgb.pkl
+│           ├── flu_rf.pkl
+│           ├── cholera_xgb.pkl
+│           ├── cholera_rf.pkl
+│           └── metrics.json
+├── alembic/
+│   └── versions/
+│       ├── 0001_initial_tables.py
+│       ├── 0002_add_wind_speed_and_indexes.py
+│       └── 0003_add_disease_records_locations_model_metrics.py
+├── .env.example
+├── alembic.ini
+├── docker-compose.yml          # Local stack: app + redis, port 8000
+├── Dockerfile
+├── fly.toml                    # Fly.io deployment config
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## 📡 Data Sources
+## Data Sources
 
 | Source | Data | Cost |
 |---|---|---|
-| [Open-Meteo](https://open-meteo.com/) | Temperature, rainfall, humidity, wind speed, UV index, ET₀, forecast + historical | Free, no key |
-| [WHO GHO API](https://www.who.int/data/gho/info/gho-odata-api) | Malaria & cholera case records by country/year | Free |
+| [Open-Meteo](https://open-meteo.com/) | Temperature, rainfall, humidity, wind speed, UV index, ET₀, precipitation probability — forecast + historical archive (back to 1940) | Free, no key |
+| [WHO GHO API](https://www.who.int/data/gho/info/gho-odata-api) | Malaria and cholera case records by country and year | Free |
 | [Nominatim / OSM](https://nominatim.org/) | Reverse geocoding (lat/lon → city name + country code) | Free |
 | [Open-Meteo Geocoding](https://open-meteo.com/en/docs/geocoding-api) | City name → lat/lon search | Free |
 | [World Bank API](https://api.worldbank.org/v2/) | Population density by country | Free |
 
 ---
 
-## 🤖 ML Models
+## ML Models
 
 ### Phase 1 — XGBoost + Random Forest Ensemble (current)
 
-Both models are trained per disease and predictions are averaged for improved stability.
+Both models are trained per disease and averaged for improved stability. Every prediction includes a **feature importance breakdown** showing which variables drove the result.
 
-**Input features (23 total):**
+**Input features (24 total):**
 
-| Feature | Source | Engineering |
+| Feature | Source | Notes |
 |---|---|---|
-| `temperature` | Open-Meteo | Raw °C (avg of max/min) |
-| `rainfall` | Open-Meteo | Raw mm |
-| `humidity` | Open-Meteo | Raw % |
-| `wind_speed` | Open-Meteo | Raw km/h |
-| `population_density` | World Bank / user input | Raw /km² |
-| `uv_index` | Open-Meteo | Raw UV max |
-| `et0_evapotranspiration` | Open-Meteo | Raw mm/day |
-| `precipitation_probability` | Open-Meteo | Raw % |
-| `apparent_temperature` | Open-Meteo | Raw °C |
-| `month_sin / month_cos` | System date | Cyclical encoding |
+| `temperature` | Open-Meteo | Avg of daily max/min (°C) |
+| `rainfall` | Open-Meteo | Daily precipitation sum (mm) |
+| `humidity` | Open-Meteo | Relative humidity (%) |
+| `wind_speed` | Open-Meteo | Daily max wind (km/h) |
+| `population_density` | World Bank | Auto-resolved by country code |
+| `uv_index` | Open-Meteo | Daily max UV |
+| `et0_evapotranspiration` | Open-Meteo | Evapotranspiration mm/day |
+| `precipitation_probability` | Open-Meteo | Max daily % |
+| `apparent_temperature` | Open-Meteo | Feels-like temperature (°C) |
+| `month_sin / month_cos` | System date | Cyclical month encoding |
 | `rain_humidity` | Derived | rainfall × humidity / 100 |
 | `temp_humidity` | Derived | temperature × humidity / 100 |
 | `rain_temp` | Derived | rainfall × temperature |
 | `pop_rain` | Derived | population_density × rainfall |
 | `heat_index` | Derived | Apparent temperature proxy |
-| `flood_risk` | Derived | Binary: rainfall > 100mm |
+| `flood_risk` | Derived | Binary: rainfall > 100 mm |
 | `high_humidity` | Derived | Binary: humidity > 75% |
 | `high_uv` | Derived | Binary: uv_index > 7 |
 | `uv_temp` | Derived | uv_index × temperature |
-| `drought_stress` | Derived | Binary: ET₀ > 5mm/day |
+| `drought_stress` | Derived | Binary: ET₀ > 5 mm/day |
 | `rain_prob_rain` | Derived | precipitation_probability × rainfall / 100 |
 | `feels_like_diff` | Derived | apparent_temperature − temperature |
 
@@ -340,12 +309,12 @@ Both models are trained per disease and predictions are averaged for improved st
 
 ---
 
-## 📋 API Reference
+## API Reference
 
 All endpoints are available at `https://climatehealth-ai.fly.dev` or via [Swagger UI](https://climatehealth-ai.fly.dev/api/docs).
 
 ### `POST /api/v1/predictions`
-Run a disease outbreak prediction for any global location.
+Run a disease outbreak prediction for any global location. Fetches live weather from Open-Meteo, auto-resolves population density from World Bank, and runs the XGBoost + RF ensemble.
 
 **Request:**
 ```json
@@ -373,45 +342,126 @@ Run a disease outbreak prediction for any global location.
   "humidity": 85.0,
   "wind_speed": 12.4,
   "population_density": 620.0,
-  "predicted_at": "2025-01-15T10:30:00"
+  "predicted_at": "2025-01-15T10:30:00",
+  "feature_importance": {
+    "rain_humidity": 0.312,
+    "rainfall": 0.218,
+    "temperature": 0.154,
+    "humidity": 0.127,
+    "pop_rain": 0.089
+  }
 }
 ```
 
+---
+
 ### `POST /api/v1/predictions/batch`
-Run up to 20 predictions in one request — used to seed the map on dashboard load.
+Run up to 20 predictions in one request. Results are cached individually.
+
+---
+
+### `POST /api/v1/predictions/forecast`
+Predict disease risk for each of the next 1–16 days using Open-Meteo's weather forecast. Returns a per-day risk ribbon.
+
+**Request:**
+```json
+{
+  "lat": 6.3703,
+  "lon": 2.3912,
+  "disease": "malaria",
+  "days": 7
+}
+```
+
+**Response:**
+```json
+{
+  "lat": 6.3703,
+  "lon": 2.3912,
+  "location_name": "Cotonou, Benin",
+  "disease": "malaria",
+  "days": 7,
+  "feature_importance": { "rain_humidity": 0.31, "rainfall": 0.22, "..." : 0.0 },
+  "forecast": [
+    { "date": "2025-01-15", "temperature": 29.1, "rainfall": 12.0, "humidity": 78.4, "risk_level": "Medium", "expected_cases": 68, "confidence": 0.84 },
+    { "date": "2025-01-16", "temperature": 30.2, "rainfall": 45.0, "humidity": 84.2, "risk_level": "High",   "expected_cases": 112, "confidence": 0.81 }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/predictions/compare`
+Run malaria, flu, and cholera predictions simultaneously for one location. Single weather fetch, three model results.
+
+**Query params:** `lat`, `lon`, `population_density` (optional)
+
+**Response:**
+```json
+{
+  "lat": 5.3599,
+  "lon": -4.0082,
+  "location_name": "Abidjan, Ivory Coast",
+  "temperature": 27.8,
+  "rainfall": 95.0,
+  "humidity": 82.0,
+  "compared_at": "2025-01-15T10:30:00Z",
+  "diseases": {
+    "malaria":  { "risk_level": "High",   "expected_cases": 118, "confidence": 0.83, "feature_importance": { "..." : 0.0 } },
+    "flu":      { "risk_level": "Low",    "expected_cases": 8,   "confidence": 0.91, "feature_importance": { "..." : 0.0 } },
+    "cholera":  { "risk_level": "Medium", "expected_cases": 28,  "confidence": 0.87, "feature_importance": { "..." : 0.0 } }
+  }
+}
+```
+
+---
+
+### `GET /api/v1/predictions/export`
+Download predictions as a CSV file. Filterable by disease and risk level.
+
+**Query params:** `disease`, `risk_level`, `limit` (max 5000)
+
+**Response:** `text/csv` file download — useful for NGOs, field health workers, and researchers.
+
+---
 
 ### `GET /api/v1/predictions`
-List stored predictions with optional filters.
+List stored predictions with pagination.
 
 | Param | Type | Description |
 |---|---|---|
 | `disease` | string | Filter: `malaria`, `flu`, `cholera` |
 | `risk_level` | string | Filter: `Low`, `Medium`, `High` |
 | `limit` | int | Max results (default: 50, max: 200) |
-| `offset` | int | Pagination offset (default: 0) |
+| `offset` | int | Pagination offset |
 
-### `GET /api/v1/predictions/{id}`
-Get a single prediction by ID.
+---
 
-### `DELETE /api/v1/predictions/{id}`
-Delete a prediction and invalidate its cache entry.
+### `GET /api/v1/predictions/{id}` · `DELETE /api/v1/predictions/{id}`
+Get or delete a single prediction by ID.
+
+---
 
 ### `GET /api/v1/weather`
-Fetch current weather + today's forecast for a coordinate.
+Fetch current weather + today's summary for any coordinate.
 
 | Param | Type | Description |
 |---|---|---|
 | `lat` | float | Latitude (-90 to 90) |
 | `lon` | float | Longitude (-180 to 180) |
 
+---
+
 ### `GET /api/v1/weather/forecast`
-Fetch multi-day forecast (up to 16 days).
+Fetch multi-day forecast (up to 16 days). Includes temperature, rainfall, humidity, wind, UV, ET₀.
 
 | Param | Type | Description |
 |---|---|---|
 | `lat` | float | Latitude |
 | `lon` | float | Longitude |
 | `days` | int | Forecast days (default: 7, max: 16) |
+
+---
 
 ### `GET /api/v1/weather/history`
 Fetch historical daily weather from the Open-Meteo archive (back to 1940).
@@ -420,18 +470,28 @@ Fetch historical daily weather from the Open-Meteo archive (back to 1940).
 |---|---|---|
 | `lat` | float | Latitude |
 | `lon` | float | Longitude |
-| `start` | string | Start date `YYYY-MM-DD` |
-| `end` | string | End date `YYYY-MM-DD` |
+| `start_date` | string | `YYYY-MM-DD` |
+| `end_date` | string | `YYYY-MM-DD` |
+
+---
 
 ### `GET /api/v1/locations/search`
-Search locations by name.
+Search locations by name. Returns lat/lon, country, region, and population.
 
 | Param | Type | Description |
 |---|---|---|
 | `q` | string | City or region name (min 2 chars) |
+| `count` | int | Max results (default: 5, max: 20) |
+
+---
 
 ### `GET /api/v1/stats`
-Aggregate statistics over all stored predictions.
+Aggregate statistics over all stored predictions — totals, risk breakdown, per-disease counts, average confidence, and 24h/7d/30d trend.
+
+### `GET /api/v1/stats/model-metrics`
+Training metrics for all models (MAE, R², sample counts). Falls back to `metrics.json` if DB is empty.
+
+---
 
 ### `GET /api/v1/disease`
 Query WHO GHO disease surveillance records.
@@ -439,7 +499,9 @@ Query WHO GHO disease surveillance records.
 | Param | Type | Description |
 |---|---|---|
 | `disease` | string | `malaria`, `flu`, or `cholera` |
-| `country` | string | ISO country code (optional) |
+| `country` | string | ISO 2-letter country code (optional) |
+
+---
 
 ### `GET /health`
 Returns DB and Redis connectivity status with latency measurements.
@@ -448,24 +510,26 @@ Returns DB and Redis connectivity status with latency measurements.
 {
   "status": "ok",
   "environment": "production",
-  "version": "1.0.0",
+  "version": "1.1.0",
+  "uptime_s": 3600.0,
   "services": {
     "database": { "ok": true, "latency_ms": 12.4 },
     "redis":    { "ok": true, "latency_ms": 3.1 }
+  },
+  "models": {
+    "all_loaded": true,
+    "files": { "malaria_xgb.pkl": true, "...": true }
   }
 }
 ```
 
-### `GET /`
-Returns API info with links to all key endpoints.
-
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Neon account](https://neon.tech/) (free tier works)
+- [Neon account](https://neon.tech/) (free tier)
 
 ### 1. Clone & configure
 
@@ -473,51 +537,59 @@ Returns API info with links to all key endpoints.
 git clone https://github.com/manziosee/ClimateHealth-AI.git
 cd ClimateHealth-AI
 
-cp backend/.env.example backend/.env
-# Edit backend/.env — fill in DATABASE_URL and REDIS_URL
+cp .env.example .env
+# Edit .env — fill in DATABASE_URL and REDIS_URL
 ```
 
 ### 2. Train ML models (first time only)
 
 ```bash
-cd backend
 pip install -r requirements.txt
 python -m app.ml.train
 ```
 
-### 3. Run the full stack
+### 3. Run with Docker
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 | Service | URL |
 |---|---|
-| Dashboard | http://localhost |
-| API | http://localhost/api/v1 |
-| Swagger Docs | http://localhost/api/docs |
-| Health Check | http://localhost/health |
+| API | http://localhost:8000 |
+| Swagger Docs | http://localhost:8000/api/docs |
+| Health Check | http://localhost:8000/health |
 
 ### 4. Test the API
 
 ```bash
-curl -X POST http://localhost/api/v1/predictions \
+# Single prediction
+curl -X POST http://localhost:8000/api/v1/predictions \
   -H "Content-Type: application/json" \
-  -d '{"lat": -1.9403, "lon": 29.8739, "disease": "malaria", "population_density": 620}'
+  -d '{"lat": -1.9403, "lon": 29.8739, "disease": "malaria"}'
+
+# 7-day forecast
+curl -X POST http://localhost:8000/api/v1/predictions/forecast \
+  -H "Content-Type: application/json" \
+  -d '{"lat": -1.9403, "lon": 29.8739, "disease": "malaria", "days": 7}'
+
+# Disease comparison
+curl "http://localhost:8000/api/v1/predictions/compare?lat=-1.9403&lon=29.8739"
+
+# Export CSV
+curl "http://localhost:8000/api/v1/predictions/export?disease=malaria" -o predictions.csv
 ```
 
 ---
 
-## ☁️ Deployment
+## Deployment
 
-The backend is deployed on **Fly.io** with **Neon PostgreSQL** and **Upstash Redis**.
+The API is deployed on **Fly.io** with **Neon PostgreSQL** and **Upstash Redis**.
 
-### Deploy manually
+### Manual deploy
 
 ```bash
-cd backend
-
-# First time setup
+# First-time setup
 flyctl apps create climatehealth-ai
 
 # Set secrets
@@ -533,9 +605,9 @@ flyctl deploy --remote-only
 
 ### Auto-deploy via GitHub Actions
 
-Any push to `main` that modifies `backend/**` automatically triggers a deploy via `.github/workflows/deploy-backend.yml`.
+Any push to `main` that modifies `app/**`, `requirements.txt`, or `Dockerfile` automatically triggers the CI pipeline which lints, smoke-tests, and deploys to Fly.io.
 
-**Required GitHub secret:** `FLY_API_TOKEN` — get it with:
+**Required GitHub secret:** `FLY_API_TOKEN`
 ```bash
 flyctl tokens create deploy -a climatehealth-ai
 ```
@@ -544,18 +616,14 @@ flyctl tokens create deploy -a climatehealth-ai
 
 | URL | Description |
 |---|---|
-| https://climatehealth-ai.fly.dev/ | API root — JSON with links |
-| https://climatehealth-ai.fly.dev/health | DB + Redis status |
-| https://climatehealth-ai.fly.dev/swagger | Redirects to Swagger UI |
-| https://climatehealth-ai.fly.dev/api/docs | Swagger UI (interactive) |
-| https://climatehealth-ai.fly.dev/api/redoc | ReDoc documentation |
-| https://climatehealth-ai.fly.dev/api/v1/predictions | Predictions API |
+| https://climatehealth-ai.fly.dev/ | API root |
+| https://climatehealth-ai.fly.dev/health | Service health |
+| https://climatehealth-ai.fly.dev/api/docs | Swagger UI |
+| https://climatehealth-ai.fly.dev/api/redoc | ReDoc |
 
 ---
 
-## 🔧 Environment Variables
-
-### Backend (`backend/.env`)
+## Environment Variables
 
 | Variable | Description | Example |
 |---|---|---|
@@ -571,49 +639,46 @@ flyctl tokens create deploy -a climatehealth-ai
 | `PREDICTION_CACHE_TTL` | Prediction cache TTL (seconds) | `3600` |
 | `DISEASE_CACHE_TTL` | WHO data cache TTL (seconds) | `86400` |
 
-### Frontend (`frontend/.env`)
-
-| Variable | Description | Example |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | Backend API base URL | `https://climatehealth-ai.fly.dev/api/v1` |
+Copy `.env.example` to `.env` and fill in `DATABASE_URL` and `REDIS_URL`. All other variables have working defaults.
 
 ---
 
-## ⚙️ CI/CD
+## CI/CD
 
 | Workflow | Trigger | Steps |
 |---|---|---|
-| `ci-backend.yml` | Push to `main`/`dev`, PR to `main` | Install deps → verify imports → smoke test ML pipeline → verify FastAPI loads → deploy to Fly.io |
-| `deploy-backend.yml` | Push to `main` (`backend/**`) | Deploy to Fly.io via `flyctl deploy --remote-only` |
-| `train-models.yml` | 1st of every month (or manual) | Train XGBoost + RF → upload artifacts → create GitHub Release with `.pkl` files |
+| `ci-backend.yml` | Push to `main`/`dev`, PR to `main` | Install deps → verify all imports → smoke-test ML pipeline → verify FastAPI loads → deploy to Fly.io |
+| `train-models.yml` | 1st of every month (or manual) | Train XGBoost + RF for all diseases → upload artifacts → create GitHub Release with `.pkl` files |
 
-Model `.pkl` files are published as GitHub Release assets and automatically downloaded by `model_registry.py` on each Fly.io deploy (since the filesystem is ephemeral).
+Model `.pkl` files are published as GitHub Release assets and automatically downloaded by `model_registry.py` on each Fly.io deploy (Fly.io filesystem is ephemeral — models are also baked into the Docker image at build time as a primary path).
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] Phase 1 — XGBoost + Random Forest ensemble (malaria, flu, cholera)
-- [x] Interactive GIS dashboard with Leaflet maps
-- [x] Real-time weather ingestion (Open-Meteo) — 23 features
+- [x] Real-time weather ingestion (Open-Meteo) — 24 features
 - [x] Redis caching + IP rate limiting + graceful fallback
 - [x] Neon PostgreSQL + async SQLAlchemy + Alembic migrations
-- [x] Docker + Nginx + Redis local deployment
 - [x] Fly.io production deployment + GitHub Actions CI/CD
 - [x] World Bank population density auto-resolution
 - [x] WHO GHO disease data endpoint
 - [x] Batch predictions endpoint
-- [x] Prediction stats + aggregation endpoint
-- [x] Weather forecast + historical archive endpoints
-- [ ] Phase 2 — LSTM / Prophet time-series forecasting
+- [x] Prediction stats + model metrics endpoint
+- [x] Weather forecast (1–16 days) + historical archive endpoints
+- [x] **7-day disease risk forecast** — per-day risk ribbon
+- [x] **Disease comparison** — malaria + flu + cholera in one call
+- [x] **Feature importance** — which variables drove each prediction
+- [x] **CSV export** — download predictions for offline use
+- [ ] Phase 2 — LSTM / Prophet time-series forecasting (1–8 weeks ahead)
 - [ ] Scheduled data ingestion (APScheduler)
 - [ ] Email / SMS alert system for high-risk thresholds
 - [ ] Additional diseases: dengue, pneumonia, meningitis
-- [ ] Frontend deployment (Vercel)
+- [ ] Historical trend comparison (5-year climate + WHO case overlay)
 
 ---
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
@@ -621,7 +686,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-Built with ❤️ using open data from **Open-Meteo**, **WHO**, and **World Bank** • Designed to save lives through early warning
+Built with open data from **Open-Meteo**, **WHO**, and **World Bank** • Designed to support early disease outbreak warning
 
 [![Open-Meteo](https://img.shields.io/badge/Data-Open--Meteo-00BFFF?style=flat-square)](https://open-meteo.com/)
 [![WHO](https://img.shields.io/badge/Data-WHO_GHO-0093D5?style=flat-square)](https://www.who.int/data/gho)
