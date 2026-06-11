@@ -40,20 +40,23 @@ jobs:
           python -c "
           import fastapi, uvicorn, sqlalchemy, asyncpg, alembic
           import pydantic, httpx, redis, pandas, numpy, sklearn, xgboost, joblib
+          import apscheduler, groq
           print('All imports OK')
           "
 
-      - name: Verify ML pipeline
+      - name: Verify ML pipeline (all 6 diseases)
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           python -c "
           from app.ml.data_generator import generate
           from app.ml.pipeline import engineer_features, FEATURE_COLUMNS
-          df = generate('malaria', n_samples=100)
-          X = engineer_features(df)[FEATURE_COLUMNS]
-          assert X.shape == (100, len(FEATURE_COLUMNS))
-          print(f'Pipeline OK — {len(FEATURE_COLUMNS)} features')
+          diseases = ['malaria', 'flu', 'cholera', 'dengue', 'pneumonia', 'meningitis']
+          for d in diseases:
+              df = generate(d, n_samples=50)
+              X = engineer_features(df)[FEATURE_COLUMNS]
+              assert X.shape == (50, len(FEATURE_COLUMNS)), f'{d}: bad shape {X.shape}'
+          print(f'Pipeline OK -- {len(diseases)} diseases x {len(FEATURE_COLUMNS)} features')
           "
 
       - name: Verify FastAPI app loads
@@ -65,7 +68,8 @@ jobs:
           python -c "
           from app.main import app
           assert app.title == 'ClimateHealth AI'
-          print('FastAPI app loads OK')
+          assert app.version == '1.2.0'
+          print('FastAPI app loads OK, version', app.version)
           "
 
   deploy:

@@ -9,6 +9,7 @@ import httpx
 from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
+from app.core.scheduler import scheduler, setup_scheduler
 from app.api.v1 import predictions, weather, health, locations, stats, disease, ai
 
 
@@ -22,7 +23,10 @@ async def lifespan(app: FastAPI):
     from app.ml.model_registry import models_exist, download_models
     if not models_exist():
         await download_models()
+    setup_scheduler()
+    scheduler.start()
     yield
+    scheduler.shutdown(wait=False)
     await close_redis()
 
 
@@ -89,13 +93,24 @@ app = FastAPI(
     summary="Global AI-powered disease outbreak prediction platform",
     description="""
 ## Overview
-**ClimateHealth AI** predicts disease outbreaks (malaria, flu, cholera) weeks in advance
-by correlating real-time weather data with epidemiological patterns using XGBoost + Random Forest models.
+**ClimateHealth AI** predicts disease outbreaks (malaria, flu, cholera, dengue, pneumonia, meningitis)
+weeks in advance by correlating real-time weather data with epidemiological patterns using
+an XGBoost + Random Forest ensemble (24 engineered features per prediction).
+
+## Supported Diseases
+| Disease | Key Drivers | Risk Thresholds |
+|---------|-------------|-----------------|
+| **Malaria** | Rainfall, humidity, temperature, UV | Low ≤40 / Medium ≤100 / High >100 |
+| **Influenza** | Cold/dry conditions, seasonality | Low ≤25 / Medium ≤70 / High >70 |
+| **Cholera** | Flooding, drought, poor sanitation | Low ≤10 / Medium ≤35 / High >35 |
+| **Dengue** | Heat, rainfall, urban density, UV | Low ≤30 / Medium ≤80 / High >80 |
+| **Pneumonia** | Cold weather, dry air, overcrowding | Low ≤50 / Medium ≤120 / High >120 |
+| **Meningitis** | Dry season, dusty winds, low humidity | Low ≤15 / Medium ≤40 / High >40 |
 
 ## Data Sources
 | Source | Data | Auth |
 |--------|------|------|
-| [Open-Meteo](https://open-meteo.com/) | Weather forecasts + historical archive | Free, no key |
+| [Open-Meteo](https://open-meteo.com/) | Weather forecasts + historical archive to 1940 | Free, no key |
 | [WHO GHO OData](https://ghoapi.azureedge.net/api/) | Disease surveillance records | Free |
 | [World Bank V2](https://api.worldbank.org/v2/) | Population density + health indicators | Free |
 | [Nominatim OSM](https://nominatim.org/) | Reverse geocoding | Free |
@@ -106,18 +121,27 @@ by correlating real-time weather data with epidemiological patterns using XGBoos
 | `/api/v1/predictions` | POST | Single prediction with feature importance |
 | `/api/v1/predictions/batch` | POST | Up to 20 predictions in one call |
 | `/api/v1/predictions/forecast` | POST | 7–16 day disease risk ribbon |
-| `/api/v1/predictions/compare` | GET | Malaria + flu + cholera side-by-side |
+| `/api/v1/predictions/compare` | GET | All 6 diseases side-by-side |
 | `/api/v1/predictions/export` | GET | Download predictions as CSV |
+| `/api/v1/ai/explain` | POST | Groq Llama 3 risk explanation |
+| `/api/v1/ai/scenario` | POST | What-if climate scenario simulation |
+| `/api/v1/ai/signal` | POST | Disease signal detection in news/text |
+| `/api/v1/ai/symptoms` | POST | Symptom → disease classification |
 | `/api/v1/weather` | GET | Current weather for any lat/lon |
 | `/api/v1/weather/forecast` | GET | 1–16 day weather forecast |
 | `/api/v1/weather/history` | GET | Historical weather (back to 1940) |
 | `/api/v1/disease` | GET | WHO GHO surveillance records |
 | `/api/v1/stats` | GET | Aggregate prediction statistics |
-| `/api/v1/locations/search` | GET | City/region search |
+| `/api/v1/locations/search` | GET | City/region geocoding search |
+| `/health` | GET | DB + Redis health check |
 
 ## ML Models
-- **Phase 1 (current):** XGBoost + Random Forest ensemble — tabular features + feature importance
+- **Phase 1 (current):** XGBoost + Random Forest ensemble — 24 engineered features, 12 trained models
 - **Phase 2 (planned):** LSTM / Prophet — time-series 1–8 week forecasting
+
+## Background Jobs
+WHO surveillance data is automatically refreshed every **6 hours** via APScheduler for the most
+frequently queried countries (RW, KE, NG, IN, BR, US, ZA, EG).
 
 ## Rate Limiting
 `60 requests / minute` per IP address (sliding window via Redis).
@@ -130,7 +154,7 @@ by correlating real-time weather data with epidemiological patterns using XGBoos
 | Disease data | 24 hours |
 | Weather history | 24 hours |
 """,
-    version="1.1.0",
+    version="1.2.0",
     contact={
         "name":  "ClimateHealth AI",
         "url":   "https://github.com/manziosee/ClimateHealth-AI",
@@ -236,7 +260,7 @@ app.openapi = custom_openapi
 async def root():
     return {
         "name":    "ClimateHealth AI",
-        "version": "1.0.0",
+        "version": "1.2.0",
         "status":  "online",
         "docs":    "https://climatehealth-ai.fly.dev/api/docs",
         "health":  "https://climatehealth-ai.fly.dev/health",

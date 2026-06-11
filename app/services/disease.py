@@ -4,8 +4,10 @@ from app.core.config import settings
 # Verified indicator codes from https://ghoapi.azureedge.net/api/Indicator
 # Search: https://ghoapi.azureedge.net/api/Indicator?$filter=contains(IndicatorName,'Malaria')
 DISEASE_INDICATORS = {
-    "malaria": "MALARIA_CASES",          # Reported malaria cases
-    "cholera": "CHOLERA_0000000001",     # Number of reported cases of cholera
+    "malaria":    "MALARIA_CASES",          # Reported malaria cases
+    "cholera":    "CHOLERA_0000000001",     # Number of reported cases of cholera
+    "dengue":     "DENGUE_CASES",           # Reported dengue cases
+    "meningitis": "MENING_BACT_CASES",      # Meningococcal meningitis cases
 }
 
 # GHO OData query params
@@ -20,6 +22,8 @@ async def fetch_disease_data(disease: str, country_code: str | None = None) -> l
     """
     if disease == "flu":
         return await _fetch_gho_flu(country_code)
+    if disease == "pneumonia":
+        return await _fetch_gho_pneumonia(country_code)
 
     indicator = DISEASE_INDICATORS.get(disease)
     if not indicator:
@@ -64,6 +68,35 @@ async def _fetch_gho_flu(country_code: str | None) -> list[dict]:
     Fallback: returns empty list gracefully if unavailable.
     """
     url = f"{settings.WHO_BASE_URL}/RSUD_INFLUENZA"
+    params: dict = {
+        "$top":     _TOP,
+        "$orderby": "TimeDim desc",
+        "$select":  "SpatialDim,TimeDim,NumericValue",
+    }
+    if country_code:
+        params["$filter"] = f"SpatialDim eq '{country_code.upper()}'"
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        try:
+            resp = await client.get(url, params=params)
+            resp.raise_for_status()
+        except Exception:
+            return []
+
+    return [
+        {
+            "country": item.get("SpatialDim"),
+            "year":    item.get("TimeDim"),
+            "cases":   item.get("NumericValue"),
+        }
+        for item in resp.json().get("value", [])
+        if item.get("NumericValue") is not None
+    ]
+
+
+async def _fetch_gho_pneumonia(country_code: str | None) -> list[dict]:
+    """Fetch pneumonia mortality data from WHO GHO (NIDS_AEFI_PNEUMONIA indicator)."""
+    url = f"{settings.WHO_BASE_URL}/NIDS_AEFI_PNEUMONIA"
     params: dict = {
         "$top":     _TOP,
         "$orderby": "TimeDim desc",

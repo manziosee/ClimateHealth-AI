@@ -30,7 +30,7 @@ from app.services.worldbank import fetch_indicator
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
 _WB_POP_DENSITY = "EN.POP.DNST"
-_DISEASES = ["malaria", "flu", "cholera"]
+_DISEASES = ["malaria", "flu", "cholera", "dengue", "pneumonia", "meningitis"]
 
 
 async def _resolve_population_density(
@@ -228,8 +228,9 @@ async def compare_diseases(
     redis=Depends(get_redis),
 ):
     """
-    Run malaria, flu, and cholera predictions simultaneously for one location.
-    Returns risk level, expected cases, confidence, and feature importance for each disease.
+    Run all 6 disease predictions simultaneously for one location:
+    malaria, flu, cholera, dengue, pneumonia, and meningitis.
+    Returns risk level, expected cases, confidence, and feature importance for each.
     """
     cache_key = f"compare:{lat}:{lon}"
     cached = await redis.get(cache_key)

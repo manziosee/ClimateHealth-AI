@@ -2,20 +2,22 @@ from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, Field
 
+DiseaseType = Literal["malaria", "flu", "cholera", "dengue", "pneumonia", "meningitis"]
+
 
 # ─── Requests ────────────────────────────────────────────────────────────────
 
 class PredictRequest(BaseModel):
     lat: float = Field(..., ge=-90, le=90)
     lon: float = Field(..., ge=-180, le=180)
-    disease: Literal["malaria", "flu", "cholera"] = "malaria"
+    disease: DiseaseType = "malaria"
     population_density: float | None = Field(None, ge=0)
 
 
 class ForecastPredictRequest(BaseModel):
     lat: float = Field(..., ge=-90, le=90)
     lon: float = Field(..., ge=-180, le=180)
-    disease: Literal["malaria", "flu", "cholera"] = "malaria"
+    disease: DiseaseType = "malaria"
     days: int = Field(default=7, ge=1, le=16)
     population_density: float | None = Field(None, ge=0)
 

@@ -11,9 +11,12 @@ MODEL_DIR = Path(__file__).parent.parent / "ml" / "saved_models"
 _cache: dict = {}
 
 RISK_THRESHOLDS = {
-    "malaria": [(40,  "Low"), (100, "Medium"), (float("inf"), "High")],
-    "flu":     [(25,  "Low"), (70,  "Medium"), (float("inf"), "High")],
-    "cholera": [(10,  "Low"), (35,  "Medium"), (float("inf"), "High")],
+    "malaria":    [(40,  "Low"), (100, "Medium"), (float("inf"), "High")],
+    "flu":        [(25,  "Low"), (70,  "Medium"), (float("inf"), "High")],
+    "cholera":    [(10,  "Low"), (35,  "Medium"), (float("inf"), "High")],
+    "dengue":     [(30,  "Low"), (80,  "Medium"), (float("inf"), "High")],
+    "pneumonia":  [(50,  "Low"), (120, "Medium"), (float("inf"), "High")],
+    "meningitis": [(15,  "Low"), (40,  "Medium"), (float("inf"), "High")],
 }
 
 

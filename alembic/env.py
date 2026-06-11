@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env from backend/ directory regardless of where alembic is invoked from
+# Load .env from repo root regardless of where alembic is invoked from
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 from sqlalchemy.ext.asyncio import create_async_engine

@@ -38,8 +38,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: models-${{ github.run_number }}
-          name: "ML Models — Run ${{ github.run_number }}"
-          body: "Automated model training run. Models trained with XGBoost + Random Forest ensemble."
+          name: "ML Models v1.2 — Run ${{ github.run_number }}"
+          body: |
+            Automated training run — 6 diseases, 12 models (XGBoost + Random Forest each).
+            Diseases: malaria, flu, cholera, dengue, pneumonia, meningitis.
+            Training data: 8,000 synthetic samples per disease, 24 engineered features.
           files: app/ml/saved_models/*.pkl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

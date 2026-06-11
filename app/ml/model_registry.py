@@ -12,7 +12,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 MODEL_DIR    = Path(__file__).parent / "saved_models"
-DISEASES     = ["malaria", "flu", "cholera"]
+DISEASES     = ["malaria", "flu", "cholera", "dengue", "pneumonia", "meningitis"]
 MODEL_TYPES  = ["xgb", "rf"]
 GITHUB_REPO  = os.getenv("GITHUB_REPO", "manziosee/ClimateHealth-AI")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")

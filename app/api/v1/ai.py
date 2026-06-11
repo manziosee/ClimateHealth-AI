@@ -37,13 +37,13 @@ class ExplainRequest(BaseModel):
     )
     lat: float | None = Field(None, ge=-90, le=90)
     lon: float | None = Field(None, ge=-180, le=180)
-    disease: Literal["malaria", "flu", "cholera"] | None = None
+    disease: Literal["malaria", "flu", "cholera", "dengue", "pneumonia", "meningitis"] | None = None
 
 
 class ScenarioRequest(BaseModel):
     lat: float = Field(..., ge=-90, le=90)
     lon: float = Field(..., ge=-180, le=180)
-    disease: Literal["malaria", "flu", "cholera"] = "malaria"
+    disease: Literal["malaria", "flu", "cholera", "dengue", "pneumonia", "meningitis"] = "malaria"
     population_density: float | None = Field(None, ge=0)
     temperature_delta: float = Field(
         default=0.0, description="Add/subtract °C from current temperature"

@@ -19,8 +19,10 @@ _CLASSIFIER    = "facebook/bart-large-mnli"
 
 _SIGNAL_LABELS = [
     "malaria outbreak",
+    "dengue epidemic",
     "influenza epidemic",
     "cholera contamination",
+    "meningitis outbreak",
     "disease spreading",
     "health emergency",
     "no disease risk",
@@ -28,10 +30,11 @@ _SIGNAL_LABELS = [
 
 _SYMPTOM_LABELS = [
     "malaria",
+    "dengue fever",
     "influenza",
     "cholera",
     "pneumonia",
-    "dengue fever",
+    "meningitis",
     "typhoid fever",
 ]
 

@@ -18,7 +18,7 @@ from xgboost import XGBRegressor
 from app.ml.data_generator import generate
 from app.ml.pipeline import engineer_features, FEATURE_COLUMNS
 
-DISEASES  = ["malaria", "flu", "cholera"]
+DISEASES  = ["malaria", "flu", "cholera", "dengue", "pneumonia", "meningitis"]
 MODEL_DIR = Path(__file__).parent / "saved_models"
 MODEL_DIR.mkdir(exist_ok=True)
 
