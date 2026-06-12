@@ -6,8 +6,8 @@ from app.core.config import settings
 DISEASE_INDICATORS = {
     "malaria":    "MALARIA_CASES",          # Reported malaria cases
     "cholera":    "CHOLERA_0000000001",     # Number of reported cases of cholera
-    "dengue":     "DENGUE_CASES",           # Reported dengue cases
-    "meningitis": "MENING_BACT_CASES",      # Meningococcal meningitis cases
+    "meningitis": "MENING_2",               # Number of suspected meningitis cases reported
+    # dengue: no WHO GHO OData indicator exists — returns empty gracefully
 }
 
 # GHO OData query params

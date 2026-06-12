@@ -16,6 +16,9 @@ on:
       - "alembic/**"
       - "requirements.txt"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   ci:
     name: Lint & Smoke Test

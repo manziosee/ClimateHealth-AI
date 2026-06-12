@@ -5,6 +5,9 @@ on:
     - cron: "0 2 1 * *"   # 1st of every month at 2am UTC
   workflow_dispatch:        # allow manual trigger from GitHub UI
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   train:
     name: Train XGBoost + Random Forest
