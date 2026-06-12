@@ -10,7 +10,7 @@ router = APIRouter(prefix="/disease", tags=["disease"])
 
 @router.get("", response_model=DiseaseDataResponse)
 async def get_disease_data(
-    disease: str = Query(..., description="malaria | flu | cholera"),
+    disease: str = Query(..., description="malaria | flu | cholera | dengue | pneumonia | meningitis"),
     country: str | None = Query(None, description="ISO 2-letter country code e.g. RW, KE, US"),
     redis=Depends(get_redis),
 ):
