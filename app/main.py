@@ -10,7 +10,7 @@ from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
 from app.core.scheduler import scheduler, setup_scheduler
-from app.api.v1 import predictions, weather, health, locations, stats, disease, ai
+from app.api.v1 import predictions, weather, health, locations, stats, disease, ai, alerts
 
 
 @asynccontextmanager
@@ -85,6 +85,16 @@ TAGS_METADATA = [
             "All endpoints return 503 gracefully when API keys are not configured."
         ),
     },
+    {
+        "name": "alerts",
+        "description": (
+            "Early-warning alert system. "
+            "`POST /check` runs a real-time prediction and returns `alert: true` when risk is **High**, "
+            "plus a disease-specific `recommended_action` for health workers in the field. "
+            "`GET /hotspots` returns the top High-risk predictions globally — "
+            "use as a live outbreak watch feed for dashboards."
+        ),
+    },
 ]
 
 
@@ -123,6 +133,8 @@ an XGBoost + Random Forest ensemble (24 engineered features per prediction).
 | `/api/v1/predictions/forecast` | POST | 7–16 day disease risk ribbon |
 | `/api/v1/predictions/compare` | GET | All 6 diseases side-by-side |
 | `/api/v1/predictions/export` | GET | Download predictions as CSV |
+| `/api/v1/alerts/check` | POST | Real-time risk alert + recommended action |
+| `/api/v1/alerts/hotspots` | GET | Global High-risk outbreak watch feed |
 | `/api/v1/ai/explain` | POST | Groq Llama 3 risk explanation |
 | `/api/v1/ai/scenario` | POST | What-if climate scenario simulation |
 | `/api/v1/ai/signal` | POST | Disease signal detection in news/text |
@@ -154,7 +166,7 @@ frequently queried countries (RW, KE, NG, IN, BR, US, ZA, EG).
 | Disease data | 24 hours |
 | Weather history | 24 hours |
 """,
-    version="1.2.0",
+    version="1.3.0",
     contact={
         "name":  "ClimateHealth AI",
         "url":   "https://github.com/manziosee/ClimateHealth-AI",
@@ -225,6 +237,7 @@ app.include_router(locations.router,   prefix=PREFIX)
 app.include_router(stats.router,       prefix=PREFIX)
 app.include_router(disease.router,     prefix=PREFIX)
 app.include_router(ai.router,          prefix=PREFIX)
+app.include_router(alerts.router,      prefix=PREFIX)
 app.include_router(health.router)
 
 
@@ -260,7 +273,7 @@ app.openapi = custom_openapi
 async def root():
     return {
         "name":    "ClimateHealth AI",
-        "version": "1.2.0",
+        "version": "1.3.0",
         "status":  "online",
         "docs":    "https://climatehealth-ai.fly.dev/api/docs",
         "health":  "https://climatehealth-ai.fly.dev/health",
