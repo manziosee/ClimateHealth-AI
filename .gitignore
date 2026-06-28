@@ -26,6 +26,7 @@ app/data/processed/
 # IDE
 .vscode/
 .idea/
+.claude/
 
 # Fly.io
 .fly/
