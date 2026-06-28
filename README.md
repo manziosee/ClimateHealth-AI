@@ -118,8 +118,8 @@ http://localhost:8000/health    → Health check
 | Technology | Purpose |
 |---|---|
 | **Fly.io** | Cloud deployment |
-| **Docker + Compose** | Local containerization |
-| **GitHub Actions** | CI/CD — lint, smoke test, deploy, monthly model retraining |
+| **Docker** | Containerization |
+| **GitHub Actions** | CI/CD — lint, smoke test, deploy |
 
 ---
 
@@ -134,7 +134,7 @@ http://localhost:8000/health    → Health check
                     +---------------------------v------------------+
                     |         Fly.io (Production)                  |
                     |                                              |
-                    |   FastAPI 1.2.0  (Python 3.13)               |
+                    |   FastAPI 1.3.0  (Python 3.13)               |
                     |                                              |
                     |  POST /api/v1/predictions[/batch/forecast]   |
                     |  GET  /api/v1/predictions[/compare/export]   |
@@ -143,6 +143,8 @@ http://localhost:8000/health    → Health check
                     |  GET  /api/v1/stats[/model-metrics]          |
                     |  GET  /api/v1/locations/search               |
                     |  POST /api/v1/ai[/explain/scenario/signal/symptoms]
+                    |  POST /api/v1/alerts/check                   |
+                    |  GET  /api/v1/alerts/hotspots                |
                     |  GET  /health                                |
                     +----------+-------------------+--------------+
                                |                   |
@@ -181,6 +183,7 @@ http://localhost:8000/health    → Health check
 | `wb:pop:{country_code}` | 24 hours | World Bank population density |
 | `disease:{disease}:{country}` | 24 hours | WHO GHO data |
 | `history:{lat}:{lon}:{start}:{end}` | 24 hours | Historical weather |
+| `hotspots:{disease}:{limit}` | 5 min | Alert hotspots feed |
 | `rate:{ip}` | 1 min | Sliding window rate limiter (60 req/min) |
 
 ---
@@ -203,6 +206,7 @@ ClimateHealth-AI/
 │   │       ├── stats.py        # Aggregate prediction statistics + model metrics
 │   │       ├── disease.py      # WHO GHO disease surveillance data
 │   │       ├── ai.py           # Groq + HuggingFace AI endpoints
+│   │       ├── alerts.py       # Real-time risk alerts + global hotspots feed
 │   │       └── health.py       # DB + Redis health check with latency
 │   ├── core/
 │   │   ├── config.py           # Pydantic settings from .env
@@ -215,7 +219,7 @@ ClimateHealth-AI/
 │   │   └── schemas.py          # Pydantic request/response schemas
 │   ├── services/
 │   │   ├── weather.py          # Open-Meteo client (current + forecast + archive)
-│   │   ├── disease.py          # WHO GHO OData API client (malaria, cholera, dengue, meningitis, flu, pneumonia)
+│   │   ├── disease.py          # WHO GHO OData API client
 │   │   ├── geocoding.py        # Nominatim reverse geocoding with DB cache
 │   │   ├── predictor.py        # ML ensemble inference + feature importance + heuristic fallback
 │   │   ├── worldbank.py        # World Bank population density API
@@ -355,13 +359,11 @@ Run a disease prediction for any global location. Fetches live weather from Open
   "temperature": 28.2,
   "rainfall": 210.0,
   "humidity": 85.0,
-  "population_density": 620.0,
   "predicted_at": "2025-01-15T10:30:00Z",
   "feature_importance": {
     "rain_humidity": 0.312,
     "rainfall": 0.218,
-    "temperature": 0.154,
-    "humidity": 0.127
+    "temperature": 0.154
   }
 }
 ```
@@ -386,10 +388,6 @@ GET /api/v1/predictions/compare?lat=-1.9403&lon=29.8739
 #### `GET /api/v1/predictions/export`
 Download predictions as CSV. Filterable by disease / risk level.
 
-```
-GET /api/v1/predictions/export?disease=malaria&risk_level=High
-```
-
 #### `GET /api/v1/predictions` · `GET /api/v1/predictions/{id}` · `DELETE /api/v1/predictions/{id}`
 List (paginated), get, or delete stored predictions.
 
@@ -400,40 +398,26 @@ List (paginated), get, or delete stored predictions.
 All AI endpoints return `503` gracefully when the corresponding API key is not configured.
 
 #### `POST /api/v1/ai/explain`
-**Groq Llama 3** — 3-4 sentence natural-language explanation of a prediction: why the risk level was assigned, which conditions drove it, and what health authorities should do.
-
-```json
-{ "prediction_id": 42 }
-```
-or
-```json
-{ "lat": -1.9403, "lon": 29.8739, "disease": "malaria" }
-```
+**Groq Llama 3** — 3-4 sentence natural-language explanation of a prediction.
 
 #### `POST /api/v1/ai/scenario`
-**Climate what-if simulator** — apply temperature/rainfall/humidity deltas to current conditions, run the model on both base and modified conditions, and get a Groq-narrated impact assessment.
-
-```json
-{
-  "lat": -1.9403, "lon": 29.8739, "disease": "malaria",
-  "rainfall_delta": 80, "temperature_delta": 2,
-  "description": "flooding after heavy monsoon"
-}
-```
+**Climate what-if simulator** — apply temperature/rainfall/humidity deltas, run both base and modified predictions, get a Groq-narrated impact assessment.
 
 #### `POST /api/v1/ai/signal`
-**HuggingFace zero-shot** — classify free text (news article, field report, social media) for disease outbreak signals. Returns ranked labels with confidence scores.
-
-```json
-{ "text": "Many residents report mosquito infestations following the recent floods." }
-```
+**HuggingFace zero-shot** — classify free text (news, field report, social media) for disease outbreak signals.
 
 #### `POST /api/v1/ai/symptoms`
 **HuggingFace zero-shot** — map a symptom description to a ranked differential of likely diseases.
 
-```json
-{ "symptoms": "high fever, chills, sweating, severe headache" }
-```
+---
+
+### Alerts
+
+#### `POST /api/v1/alerts/check`
+Real-time risk alert. Returns `alert: true` when risk is **High** plus a disease-specific `recommended_action` for field health workers.
+
+#### `GET /api/v1/alerts/hotspots`
+Global outbreak watch feed — top High-risk predictions sorted by expected cases. Cached 5 minutes.
 
 ---
 
@@ -481,19 +465,11 @@ pip install -r requirements.txt
 python -m app.ml.train
 ```
 
-This trains 12 models (6 diseases × XGBoost + Random Forest) and saves them to `app/ml/saved_models/`.
-
-### 3. Run with Docker
+### 3. Run locally
 
 ```bash
-docker compose up --build
+uvicorn app.main:app --reload
 ```
-
-| Service | URL |
-|---|---|
-| API | http://localhost:8000 |
-| Swagger Docs | http://localhost:8000/api/docs |
-| Health Check | http://localhost:8000/health |
 
 ### 4. Test the API
 
@@ -503,24 +479,16 @@ curl -X POST http://localhost:8000/api/v1/predictions \
   -H "Content-Type: application/json" \
   -d '{"lat": -1.9403, "lon": 29.8739, "disease": "malaria"}'
 
-# Dengue prediction in Bangkok
-curl -X POST http://localhost:8000/api/v1/predictions \
-  -H "Content-Type: application/json" \
-  -d '{"lat": 13.7563, "lon": 100.5018, "disease": "dengue"}'
+# All 6 diseases compared
+curl "http://localhost:8000/api/v1/predictions/compare?lat=-1.9403&lon=29.8739"
 
 # 7-day forecast
 curl -X POST http://localhost:8000/api/v1/predictions/forecast \
   -H "Content-Type: application/json" \
   -d '{"lat": -1.9403, "lon": 29.8739, "disease": "malaria", "days": 7}'
 
-# All 6 diseases compared
-curl "http://localhost:8000/api/v1/predictions/compare?lat=-1.9403&lon=29.8739"
-
-# Export CSV
-curl "http://localhost:8000/api/v1/predictions/export?disease=malaria" -o predictions.csv
-
-# AI explanation (requires GROQ_API_KEY)
-curl -X POST http://localhost:8000/api/v1/ai/explain \
+# Real-time alert check
+curl -X POST http://localhost:8000/api/v1/alerts/check \
   -H "Content-Type: application/json" \
   -d '{"lat": -1.9403, "lon": 29.8739, "disease": "malaria"}'
 ```
@@ -533,23 +501,11 @@ The API is deployed on **Fly.io** with **Neon PostgreSQL** and **Upstash Redis**
 
 ### Set Fly.io secrets
 
-```powershell
-# PowerShell (Windows)
-flyctl secrets set DATABASE_URL="postgresql+asyncpg://..." REDIS_URL="rediss://..." GROQ_API_KEY="gsk_..." HUGGINGFACE_API_KEY="hf_..."
-```
-
 ```bash
-# Bash (Linux/Mac)
 flyctl secrets set DATABASE_URL="postgresql+asyncpg://..." \
   REDIS_URL="rediss://..." \
   GROQ_API_KEY="gsk_..." \
   HUGGINGFACE_API_KEY="hf_..."
-```
-
-### Deploy
-
-```bash
-flyctl deploy --remote-only --ha=false
 ```
 
 ### Auto-deploy via GitHub Actions
@@ -558,25 +514,24 @@ Any push to `main` that modifies `app/**`, `requirements.txt`, or `Dockerfile` a
 
 **Required GitHub secret:** `FLY_API_TOKEN`
 ```bash
-flyctl auth token
+flyctl tokens create deploy -x 999999h
 ```
-Add the output as a repository secret named `FLY_API_TOKEN`.
 
 ---
 
 ## Environment Variables
 
-| Variable | Required | Description | Example |
-|---|---|---|---|
-| `DATABASE_URL` | Yes | Neon PostgreSQL async URL | `postgresql+asyncpg://user:pass@host/db?ssl=require` |
-| `REDIS_URL` | Yes | Redis URL (use `rediss://` for Upstash TLS) | `rediss://default:pass@host:6379` |
-| `APP_ENV` | No | Environment name | `production` |
-| `SECRET_KEY` | No | App secret | Random 32-char string |
-| `GROQ_API_KEY` | No | Groq Cloud key — enables `/ai/explain` + `/ai/scenario` | `gsk_...` |
-| `HUGGINGFACE_API_KEY` | No | HF Inference API key — enables `/ai/signal` + `/ai/symptoms` | `hf_...` |
-| `WEATHER_CACHE_TTL` | No | Seconds (default 1800) | `1800` |
-| `PREDICTION_CACHE_TTL` | No | Seconds (default 3600) | `3600` |
-| `DISEASE_CACHE_TTL` | No | Seconds (default 86400) | `86400` |
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | Neon PostgreSQL async URL |
+| `REDIS_URL` | Yes | Redis URL |
+| `APP_ENV` | No | `development` / `production` |
+| `SECRET_KEY` | No | App secret |
+| `GROQ_API_KEY` | No | Groq Cloud key — enables `/ai/explain` + `/ai/scenario` |
+| `HUGGINGFACE_API_KEY` | No | HF Inference API key — enables `/ai/signal` + `/ai/symptoms` |
+| `WEATHER_CACHE_TTL` | No | Seconds (default 1800) |
+| `PREDICTION_CACHE_TTL` | No | Seconds (default 3600) |
+| `DISEASE_CACHE_TTL` | No | Seconds (default 86400) |
 
 ---
 
@@ -584,10 +539,8 @@ Add the output as a repository secret named `FLY_API_TOKEN`.
 
 | Workflow | Trigger | Steps |
 |---|---|---|
-| `ci-backend.yml` | Push to `main`/`dev`, PR to `main` | Install deps → verify imports (incl. apscheduler, groq) → smoke-test ML pipeline for all 6 diseases → verify FastAPI loads → deploy to Fly.io |
+| `ci-backend.yml` | Push to `main`, PR to `main` | Install deps → verify imports (incl. apscheduler, groq) → smoke-test ML pipeline for all 6 diseases → verify FastAPI loads → deploy to Fly.io |
 | `train-models.yml` | 1st of every month (or manual) | Train XGBoost + RF for all 6 diseases → upload artifacts → create GitHub Release with `.pkl` files |
-
-Model `.pkl` files are baked into the Docker image at build time (`RUN python -m app.ml.train`) as the primary path. The GitHub Release fallback is used by `model_registry.py` if models are missing at runtime.
 
 ---
 
@@ -610,11 +563,12 @@ Model `.pkl` files are baked into the Docker image at build time (`RUN python -m
 - [x] **Additional diseases** — dengue, pneumonia, meningitis (6 total, 12 models)
 - [x] **Groq AI** — Llama 3 prediction explanations + climate scenario simulation
 - [x] **HuggingFace AI** — zero-shot disease signal detection + symptom classification
+- [x] **Alerts system** — real-time risk check + global hotspots feed + recommended actions
 - [x] **APScheduler** — automatic WHO data refresh every 6 hours
 - [ ] Phase 2 — LSTM / Prophet time-series forecasting (1–8 weeks ahead)
 - [ ] Email / SMS alert system for high-risk threshold notifications
 - [ ] Historical trend comparison (5-year climate + WHO case overlay)
-- [ ] GitHub Release automation for trained model `.pkl` files
+- [ ] Frontend deployment (Vercel)
 
 ---
 
