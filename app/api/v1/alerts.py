@@ -58,6 +58,8 @@ class AlertCheckRequest(BaseModel):
     lon: float = Field(..., ge=-180, le=180)
     disease: DiseaseType = "malaria"
     population_density: float | None = Field(None, ge=0)
+    notify_email: str | None = Field(None, description="Email to notify when risk is High")
+    notify_phone: str | None = Field(None, description="E.164 phone number for SMS when risk is High, e.g. +1234567890")
 
 
 class AlertCheckResponse(BaseModel):
@@ -75,6 +77,8 @@ class AlertCheckResponse(BaseModel):
     recommended_action: str
     feature_importance: dict[str, float] | None
     checked_at: datetime
+    email_sent: bool = False
+    sms_sent: bool = False
 
 
 class HotspotItem(BaseModel):
@@ -126,8 +130,28 @@ async def alert_check(
 
     result = predictor.predict(**_build_predict_kwargs(weather, pop_density, body.disease))
 
+    action = _action(body.disease, result["risk_level"])
+    is_high = result["risk_level"] == "High"
+
+    email_sent = sms_sent = False
+    if is_high:
+        from app.services.notifications import send_email_alert, send_sms_alert, AlertPayload
+        payload = AlertPayload(
+            disease=body.disease,
+            risk_level=result["risk_level"],
+            expected_cases=result["expected_cases"],
+            location_name=location_name,
+            lat=body.lat,
+            lon=body.lon,
+            recommended_action=action,
+        )
+        if body.notify_email:
+            email_sent = await send_email_alert(body.notify_email, payload)
+        if body.notify_phone:
+            sms_sent = await send_sms_alert(body.notify_phone, payload)
+
     return AlertCheckResponse(
-        alert=result["risk_level"] == "High",
+        alert=is_high,
         risk_level=result["risk_level"],
         expected_cases=result["expected_cases"],
         confidence=result["confidence"],
@@ -138,9 +162,11 @@ async def alert_check(
         temperature=weather["temperature"],
         rainfall=weather["rainfall"],
         humidity=weather["humidity"],
-        recommended_action=_action(body.disease, result["risk_level"]),
+        recommended_action=action,
         feature_importance=result.get("feature_importance"),
         checked_at=datetime.now(timezone.utc),
+        email_sent=email_sent,
+        sms_sent=sms_sent,
     )
 
 

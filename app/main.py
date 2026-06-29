@@ -10,7 +10,7 @@ from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
 from app.core.scheduler import scheduler, setup_scheduler
-from app.api.v1 import predictions, weather, health, locations, stats, disease, ai, alerts
+from app.api.v1 import predictions, weather, health, locations, stats, disease, ai, alerts, timeseries, trends
 
 
 @asynccontextmanager
@@ -91,8 +91,18 @@ TAGS_METADATA = [
             "Early-warning alert system. "
             "`POST /check` runs a real-time prediction and returns `alert: true` when risk is **High**, "
             "plus a disease-specific `recommended_action` for health workers in the field. "
+            "Optional `notify_email` / `notify_phone` fields trigger SendGrid email and Twilio SMS alerts. "
             "`GET /hotspots` returns the top High-risk predictions globally — "
             "use as a live outbreak watch feed for dashboards."
+        ),
+    },
+    {
+        "name": "trends",
+        "description": (
+            "Historical trend comparison — overlay 5 years of Open-Meteo climate archive "
+            "with WHO GHO disease surveillance records. "
+            "Reveals how climate signals (rainfall, temperature) precede or correlate with "
+            "disease case surges for any location on Earth."
         ),
     },
 ]
@@ -238,6 +248,8 @@ app.include_router(stats.router,       prefix=PREFIX)
 app.include_router(disease.router,     prefix=PREFIX)
 app.include_router(ai.router,          prefix=PREFIX)
 app.include_router(alerts.router,      prefix=PREFIX)
+app.include_router(timeseries.router,  prefix=PREFIX)
+app.include_router(trends.router,      prefix=PREFIX)
 app.include_router(health.router)
 
 

@@ -23,5 +23,12 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     HUGGINGFACE_API_KEY: str = ""
 
+    # Notification services — optional; alerts silently skipped when empty
+    SENDGRID_API_KEY: str = ""
+    ALERT_FROM_EMAIL: str = "alerts@climatehealth.ai"
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_FROM_NUMBER: str = ""
+
 
 settings = Settings()

@@ -113,6 +113,9 @@ http://localhost:8000/health    → Health check
 |---|---|
 | **Groq Cloud (Llama 3.1-8b)** | Natural-language risk explanations + scenario simulation |
 | **HuggingFace (bart-large-mnli)** | Zero-shot disease signal detection + symptom classification |
+| **Prophet** | Time-series 1–8 week disease forecasting |
+| **SendGrid** | High-risk email alert notifications |
+| **Twilio** | High-risk SMS alert notifications |
 
 ### Infrastructure
 | Technology | Purpose |
@@ -439,6 +442,8 @@ Global outbreak watch feed — top High-risk predictions sorted by expected case
 | `GET /api/v1/stats/model-metrics` | Training MAE + R² for all 12 models |
 | `GET /api/v1/locations/search` | Geocoding search (`q` param) |
 | `GET /health` | DB + Redis health check with latency |
+| `POST /api/v1/predictions/timeseries` | Prophet 1–8 week ahead forecast with confidence intervals |
+| `GET /api/v1/trends/compare` | 5-year climate + WHO case overlay for any location |
 
 ---
 
@@ -565,9 +570,9 @@ flyctl tokens create deploy -x 999999h
 - [x] **HuggingFace AI** — zero-shot disease signal detection + symptom classification
 - [x] **Alerts system** — real-time risk check + global hotspots feed + recommended actions
 - [x] **APScheduler** — automatic WHO data refresh every 6 hours
-- [ ] Phase 2 — LSTM / Prophet time-series forecasting (1–8 weeks ahead)
-- [ ] Email / SMS alert system for high-risk threshold notifications
-- [ ] Historical trend comparison (5-year climate + WHO case overlay)
+- [x] Phase 2 — LSTM / Prophet time-series forecasting (1–8 weeks ahead)
+- [x] Email / SMS alert system for high-risk threshold notifications
+- [x] Historical trend comparison (5-year climate + WHO case overlay)
 - [ ] Frontend deployment (Vercel)
 
 ---
