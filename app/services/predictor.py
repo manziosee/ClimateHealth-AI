@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 import joblib
 import numpy as np
@@ -18,6 +19,22 @@ RISK_THRESHOLDS = {
     "pneumonia":  [(50,  "Low"), (120, "Medium"), (float("inf"), "High")],
     "meningitis": [(15,  "Low"), (40,  "Medium"), (float("inf"), "High")],
 }
+
+# Days from exposure to first symptoms (min, max, typical)
+INCUBATION_DAYS = {
+    "malaria":    (7,  14, 10),
+    "flu":        (1,  4,  2),
+    "cholera":    (1,  5,  2),
+    "dengue":     (4,  10, 6),
+    "pneumonia":  (1,  4,  2),
+    "meningitis": (2,  10, 4),
+}
+
+# Diseases that share transmission vectors — flag co-risk
+_VECTOR_GROUPS = [
+    {"malaria", "dengue"},           # Aedes / Anopheles overlap in tropical areas
+    {"cholera", "pneumonia"},         # flooding raises both waterborne + respiratory
+]
 
 
 def _load(name: str):
@@ -112,4 +129,96 @@ def predict(
         "confidence":         confidence,
         "risk_level":         _risk_label(disease, cases),
         "feature_importance": _feature_importance(xgb, rf),
+    }
+
+
+def predict_with_decay(
+    days_ahead: int,
+    **kwargs,
+) -> dict:
+    """
+    predict() with confidence decayed by forecast horizon.
+    Confidence drops ~3% per day beyond day 1 — a 14-day forecast is less certain than a 1-day.
+    """
+    result = predict(**kwargs)
+    decay  = max(0.0, 1.0 - (days_ahead - 1) * 0.03)
+    result["confidence"] = round(result["confidence"] * decay, 3)
+    return result
+
+
+def trajectory(forecast_cases: list[int]) -> Literal["rising", "peaking", "declining", "stable"]:
+    """
+    Given a list of daily/weekly expected_cases, return the outbreak direction.
+    Uses linear regression slope over the series.
+    """
+    if len(forecast_cases) < 3:
+        return "stable"
+    x = np.arange(len(forecast_cases), dtype=float)
+    y = np.array(forecast_cases, dtype=float)
+    slope = np.polyfit(x, y, 1)[0]
+    peak_idx = int(np.argmax(y))
+    mean_y = y.mean() or 1
+    if abs(slope) / mean_y < 0.02:   # < 2% change per step
+        return "stable"
+    if slope > 0:
+        return "rising"
+    # declining — check if we've already passed the peak
+    if peak_idx < len(y) // 2:
+        return "peaking"
+    return "declining"
+
+
+def correlated_diseases(disease: str, risk_level: str) -> list[str]:
+    """Return diseases that share transmission vectors and should be co-flagged."""
+    if risk_level not in ("High", "Medium"):
+        return []
+    for group in _VECTOR_GROUPS:
+        if disease in group:
+            return sorted(group - {disease})
+    return []
+
+
+def feature_narrative(feature_importance: dict[str, float], weather: dict, disease: str) -> list[str]:
+    """
+    Convert raw feature importance scores into plain-language sentences.
+    E.g. {"rainfall": 0.31} + rainfall=210 → "Rainfall (210mm) is the dominant driver — 2.1x above outbreak threshold."
+    """
+    # Outbreak thresholds for narrative context
+    _THRESHOLDS = {
+        "rainfall":   100, "humidity": 75, "temperature": 30,
+        "uv_index":   7,   "wind_speed": 20,
+    }
+    sentences = []
+    top = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)[:3]
+    for feat, weight in top:
+        base_feat = feat.split("_")[0] if "_" in feat else feat
+        val = weather.get(feat) or weather.get(base_feat)
+        thresh = _THRESHOLDS.get(base_feat)
+        pct = round(weight * 100)
+        if val is not None and thresh:
+            ratio = round(val / thresh, 1)
+            level = "dominant" if weight > 0.3 else "significant"
+            sentences.append(
+                f"{feat.replace('_', ' ').title()} ({val:.1f}) is a {level} driver ({pct}% contribution) — {ratio}x the outbreak threshold."
+            )
+        else:
+            sentences.append(f"{feat.replace('_', ' ').title()} is a contributing factor ({pct}% of model decision).")
+    return sentences
+
+
+def incubation_projection(disease: str, risk_level: str) -> dict | None:
+    """Return expected symptom onset window from today given incubation period."""
+    if risk_level == "Low":
+        return None
+    from datetime import date, timedelta
+    inc = INCUBATION_DAYS.get(disease)
+    if not inc:
+        return None
+    min_days, max_days, typical_days = inc
+    today = date.today()
+    return {
+        "earliest_onset": (today + timedelta(days=min_days)).isoformat(),
+        "typical_onset":  (today + timedelta(days=typical_days)).isoformat(),
+        "latest_onset":   (today + timedelta(days=max_days)).isoformat(),
+        "note": f"{disease.title()} incubation period is {min_days}–{max_days} days.",
     }

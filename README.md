@@ -573,7 +573,6 @@ flyctl tokens create deploy -x 999999h
 - [x] Phase 2 — LSTM / Prophet time-series forecasting (1–8 weeks ahead)
 - [x] Email / SMS alert system for high-risk threshold notifications
 - [x] Historical trend comparison (5-year climate + WHO case overlay)
-- [ ] Frontend deployment (Vercel)
 
 ---
 

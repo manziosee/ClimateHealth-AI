@@ -181,8 +181,9 @@ async def disease_forecast(
     daily_results: list[ForecastDayResult] = []
     feature_importance = None
 
-    for day in forecast_data:
-        result = predictor.predict(
+    for i, day in enumerate(forecast_data):
+        result = predictor.predict_with_decay(
+            days_ahead=i + 1,
             disease=body.disease,
             temperature=day["temperature"],
             rainfall=day["rainfall"],

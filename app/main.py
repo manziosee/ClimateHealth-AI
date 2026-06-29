@@ -10,7 +10,7 @@ from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
 from app.core.scheduler import scheduler, setup_scheduler
-from app.api.v1 import predictions, weather, health, locations, stats, disease, ai, alerts, timeseries, trends
+from app.api.v1 import predictions, weather, health, locations, stats, disease, ai, alerts, timeseries, trends, intelligence, monitor
 
 
 @asynccontextmanager
@@ -103,6 +103,25 @@ TAGS_METADATA = [
             "with WHO GHO disease surveillance records. "
             "Reveals how climate signals (rainfall, temperature) precede or correlate with "
             "disease case surges for any location on Earth."
+        ),
+    },
+    {
+        "name": "intelligence",
+        "description": (
+            "Epidemiological intelligence layer. "
+            "Outbreak trajectory (rising/peaking/declining), cross-disease vector correlation, "
+            "country-level risk summary, neighboring location risk spread, "
+            "seasonal baseline comparison, model drift detection, "
+            "incubation period projection, and plain-language feature narratives."
+        ),
+    },
+    {
+        "name": "monitor",
+        "description": (
+            "Subscription-based alert system and bulk location monitoring for NGOs. "
+            "Register locations into named groups, then call `/monitor/summary` to get "
+            "a bulk High-risk scan across all coordinates in one call. "
+            "Subscriptions trigger daily email/SMS alerts automatically via APScheduler."
         ),
     },
 ]
@@ -248,8 +267,10 @@ app.include_router(stats.router,       prefix=PREFIX)
 app.include_router(disease.router,     prefix=PREFIX)
 app.include_router(ai.router,          prefix=PREFIX)
 app.include_router(alerts.router,      prefix=PREFIX)
-app.include_router(timeseries.router,  prefix=PREFIX)
-app.include_router(trends.router,      prefix=PREFIX)
+app.include_router(timeseries.router,    prefix=PREFIX)
+app.include_router(trends.router,        prefix=PREFIX)
+app.include_router(intelligence.router,  prefix=PREFIX)
+app.include_router(monitor.router,       prefix=PREFIX)
 app.include_router(health.router)
 
 

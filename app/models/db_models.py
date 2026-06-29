@@ -106,3 +106,41 @@ class ModelMetrics(Base):
         Index("ix_model_metrics_disease", "disease"),
         Index("ix_model_metrics_trained_at", "trained_at"),
     )
+
+
+class AlertSubscription(Base):
+    """Push notification subscriptions — daily digest when risk crosses threshold."""
+    __tablename__ = "alert_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    location_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    disease: Mapped[str] = mapped_column(String(50), nullable=False)
+    threshold: Mapped[str] = mapped_column(String(20), default="High")  # High | Medium
+    notify_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    notify_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    active: Mapped[bool] = mapped_column(Integer, default=True)
+    last_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_alert_subscriptions_disease", "disease"),
+        Index("ix_alert_subscriptions_active", "active"),
+    )
+
+
+class MonitoredLocation(Base):
+    """Bulk monitoring — NGO-registered location lists for daily risk summaries."""
+    __tablename__ = "monitored_locations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    group_name: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g. "Rwanda Health Zones"
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    location_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_monitored_locations_group", "group_name"),
+    )
