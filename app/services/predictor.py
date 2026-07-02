@@ -75,13 +75,30 @@ def _feature_importance(xgb_model, rf_model) -> dict[str, float]:
 
 def _heuristic(disease: str, temperature: float, rainfall: float,
                humidity: float, population_density: float) -> tuple[int, float]:
+    """Fallback when models are missing — coefficients mirror the data generator formulas."""
     if disease == "malaria":
-        score = rainfall * 0.4 + humidity * 0.3 + temperature * 0.2 + population_density * 0.001
+        score = 0.30*rainfall + 0.20*humidity + 0.15*temperature + 0.007*population_density
     elif disease == "flu":
-        score = max(0, 30 - temperature) * 0.5 + humidity * 0.2
+        score = 0.50*max(0, 30 - temperature) + 0.15*(100 - humidity) + 0.005*population_density
+    elif disease == "cholera":
+        flood = 1.8 if rainfall > 100 else 1.0
+        score = 0.40*rainfall*flood + 0.012*population_density + 0.08*humidity
+    elif disease == "dengue":
+        urban = 1.5 if population_density > 500 else 1.0
+        score = (0.25*rainfall + 0.25*humidity
+                 + 0.20*max(0, temperature - 20) + 0.008*population_density*urban)
+    elif disease == "pneumonia":
+        cold = max(0, 25 - temperature)
+        dry  = max(0, 60 - humidity)
+        score = 0.45*cold + 0.20*dry + 0.010*population_density
+    elif disease == "meningitis":
+        dry     = max(0, 70 - humidity)
+        no_rain = max(0, 50 - rainfall)
+        score = 0.35*dry + 0.25*no_rain + 0.008*population_density
     else:
         score = rainfall * 0.5 + population_density * 0.002
-    return max(0, int(score)), round(min(0.65, 0.4 + score / 300), 2)
+    score = max(0.0, score)
+    return int(score), round(min(0.65, 0.40 + score / 300), 2)
 
 
 def predict(

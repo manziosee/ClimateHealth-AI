@@ -105,9 +105,9 @@ async def _run_subscription_alerts() -> None:
 
 
 async def _get_redis_client():
-    """Get a live Redis client for use inside scheduler jobs."""
-    from app.core.cache import redis_client
-    return redis_client
+    """Get a Redis client for scheduler jobs — falls back to _NoopRedis when unavailable."""
+    from app.core.cache import get_redis
+    return await get_redis()
 
 
 def setup_scheduler() -> None:

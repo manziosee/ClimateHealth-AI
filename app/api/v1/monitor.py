@@ -8,10 +8,11 @@ POST /api/v1/monitor/locations          — register a location into a named gro
 GET  /api/v1/monitor/summary            — bulk risk scan — returns only High-risk from group
 """
 import json
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 
@@ -30,6 +31,10 @@ _DISEASES = ["malaria", "flu", "cholera", "dengue", "pneumonia", "meningitis"]
 
 # ─── Subscription CRUD ────────────────────────────────────────────────────────
 
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+_E164_RE  = re.compile(r'^\+[1-9]\d{6,14}$')
+
+
 class SubscribeRequest(BaseModel):
     lat:          float  = Field(..., ge=-90, le=90)
     lon:          float  = Field(..., ge=-180, le=180)
@@ -37,6 +42,20 @@ class SubscribeRequest(BaseModel):
     threshold:    str    = Field(default="High", pattern="^(High|Medium)$")
     notify_email: str | None = None
     notify_phone: str | None = None
+
+    @field_validator("notify_email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is not None and not _EMAIL_RE.match(v):
+            raise ValueError("Invalid email address format")
+        return v
+
+    @field_validator("notify_phone")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        if v is not None and not _E164_RE.match(v):
+            raise ValueError("Phone must be E.164 format, e.g. +250788123456")
+        return v
 
 
 class SubscriptionResponse(BaseModel):

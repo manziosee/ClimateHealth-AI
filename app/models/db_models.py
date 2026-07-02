@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Float, Integer, String, DateTime, Index, func, Text
+from sqlalchemy import Boolean, Float, Integer, String, DateTime, Index, func, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
@@ -120,7 +120,7 @@ class AlertSubscription(Base):
     threshold: Mapped[str] = mapped_column(String(20), default="High")  # High | Medium
     notify_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     notify_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    active: Mapped[bool] = mapped_column(Integer, default=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

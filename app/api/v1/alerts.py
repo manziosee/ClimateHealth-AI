@@ -5,10 +5,11 @@ POST /api/v1/alerts/check    — real-time risk check for a location + recommend
 GET  /api/v1/alerts/hotspots — top High-risk predictions globally (live outbreak watch feed)
 """
 import json
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
@@ -53,6 +54,10 @@ def _action(disease: str, risk_level: str) -> str:
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
 
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+_E164_RE  = re.compile(r'^\+[1-9]\d{6,14}$')
+
+
 class AlertCheckRequest(BaseModel):
     lat: float = Field(..., ge=-90, le=90)
     lon: float = Field(..., ge=-180, le=180)
@@ -60,6 +65,20 @@ class AlertCheckRequest(BaseModel):
     population_density: float | None = Field(None, ge=0)
     notify_email: str | None = Field(None, description="Email to notify when risk is High")
     notify_phone: str | None = Field(None, description="E.164 phone number for SMS when risk is High, e.g. +1234567890")
+
+    @field_validator("notify_email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is not None and not _EMAIL_RE.match(v):
+            raise ValueError("Invalid email address format")
+        return v
+
+    @field_validator("notify_phone")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        if v is not None and not _E164_RE.match(v):
+            raise ValueError("Phone must be E.164 format, e.g. +250788123456")
+        return v
 
 
 class AlertCheckResponse(BaseModel):
