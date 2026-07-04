@@ -10,7 +10,7 @@ from app.core.cache import init_redis, close_redis
 from app.core.database import engine, Base
 from app.core.middleware import rate_limit_middleware
 from app.core.scheduler import scheduler, setup_scheduler
-from app.api.v1 import predictions, weather, health, locations, stats, disease, ai, alerts, timeseries, trends, intelligence, monitor
+from app.api.v1 import predictions, weather, health, locations, stats, disease, ai, alerts, timeseries, trends, intelligence, monitor, report, admin
 
 
 @asynccontextmanager
@@ -124,6 +124,24 @@ TAGS_METADATA = [
             "Subscriptions trigger daily email/SMS alerts automatically via APScheduler."
         ),
     },
+    {
+        "name": "report",
+        "description": (
+            "Country-level disease risk report — all 6 diseases in one call. "
+            "`GET /report/{country_code}` runs predictions for the country's capital city "
+            "and returns risk levels, expected cases, and recommended actions for every disease. "
+            "Supports 65+ countries via ISO 3166-1 alpha-3 codes (e.g. `RWA`, `KEN`, `NGA`, `IND`). "
+            "Call `GET /report/countries` for the full supported list. Cached 1 hour."
+        ),
+    },
+    {
+        "name": "admin",
+        "description": (
+            "Operational overview — prediction volumes, active subscriptions, monitored groups, "
+            "ML model health (R², cross-validated R², training sample count), and WHO data freshness. "
+            "Use `GET /admin/status` to confirm the system is active and models are current."
+        ),
+    },
 ]
 
 
@@ -164,6 +182,9 @@ an XGBoost + Random Forest ensemble (24 engineered features per prediction).
 | `/api/v1/predictions/export` | GET | Download predictions as CSV |
 | `/api/v1/alerts/check` | POST | Real-time risk alert + recommended action |
 | `/api/v1/alerts/hotspots` | GET | Global High-risk outbreak watch feed |
+| `/api/v1/report/{country_code}` | GET | All-diseases risk report for a country |
+| `/api/v1/report/countries` | GET | List of 65+ supported country codes |
+| `/api/v1/admin/status` | GET | System health: volumes, models, subscriptions |
 | `/api/v1/ai/explain` | POST | Groq Llama 3 risk explanation |
 | `/api/v1/ai/scenario` | POST | What-if climate scenario simulation |
 | `/api/v1/ai/signal` | POST | Disease signal detection in news/text |
@@ -195,7 +216,7 @@ frequently queried countries (RW, KE, NG, IN, BR, US, ZA, EG).
 | Disease data | 24 hours |
 | Weather history | 24 hours |
 """,
-    version="1.3.0",
+    version="1.4.0",
     contact={
         "name":  "ClimateHealth AI",
         "url":   "https://github.com/manziosee/ClimateHealth-AI",
@@ -271,6 +292,8 @@ app.include_router(timeseries.router,    prefix=PREFIX)
 app.include_router(trends.router,        prefix=PREFIX)
 app.include_router(intelligence.router,  prefix=PREFIX)
 app.include_router(monitor.router,       prefix=PREFIX)
+app.include_router(report.router,        prefix=PREFIX)
+app.include_router(admin.router,         prefix=PREFIX)
 app.include_router(health.router)
 
 
@@ -306,7 +329,7 @@ app.openapi = custom_openapi
 async def root():
     return {
         "name":    "ClimateHealth AI",
-        "version": "1.3.0",
+        "version": "1.4.0",
         "status":  "online",
         "docs":    "https://climatehealth-ai.fly.dev/api/docs",
         "health":  "https://climatehealth-ai.fly.dev/health",

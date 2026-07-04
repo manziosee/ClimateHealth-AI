@@ -71,7 +71,7 @@ jobs:
           python -c "
           from app.main import app
           assert app.title == 'ClimateHealth AI'
-          assert app.version == '1.3.0'
+          assert app.version == '1.4.0'
           print('FastAPI app loads OK, version', app.version)
           "
 
