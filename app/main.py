@@ -7,19 +7,35 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import httpx
 
 from app.core.cache import init_redis, close_redis
+from app.core.config import settings
 from app.core.database import engine, Base
+from app.core.logging_config import setup_logging
 from app.core.middleware import rate_limit_middleware
+from app.core.auth import api_key_middleware
 from app.core.scheduler import scheduler, setup_scheduler
 from app.api.v1 import predictions, weather, health, locations, stats, disease, ai, alerts, timeseries, trends, intelligence, monitor, report, admin
+
+# Structured JSON logging — must be configured before any logger calls
+setup_logging()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Sentry error tracking (no-op when SENTRY_DSN is not set)
+    if settings.SENTRY_DSN:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+            traces_sample_rate=0.05,
+            environment=settings.APP_ENV,
+        )
+
     await init_redis()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    # Only attempt model download if models are missing (won't block on Fly.io since
-    # models are baked into the Docker image at build time)
     from app.ml.model_registry import models_exist, download_models
     if not models_exist():
         await download_models()
@@ -276,7 +292,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Rate limiting (per-IP, path-aware) — runs before auth so 429 fires first
 app.add_middleware(BaseHTTPMiddleware, dispatch=rate_limit_middleware)
+# API key enforcement — all /api/v1/* routes except explicitly public ones
+app.add_middleware(BaseHTTPMiddleware, dispatch=api_key_middleware)
 
 # ─── Routers ─────────────────────────────────────────────────────────────────
 

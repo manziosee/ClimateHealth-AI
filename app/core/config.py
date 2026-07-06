@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     PREDICTION_CACHE_TTL: int = 3600
     DISEASE_CACHE_TTL: int = 86400
 
+    # Authentication — set ADMIN_API_KEY in Fly.io secrets to protect admin endpoints
+    # and to bootstrap user API key creation via POST /api/v1/admin/keys
+    ADMIN_API_KEY: str = ""
+
+    # Observability — optional; error tracking disabled when empty
+    SENTRY_DSN: str = ""
+
     # AI services — optional; endpoints return 503 when empty
     GROQ_API_KEY: str = ""
     HUGGINGFACE_API_KEY: str = ""

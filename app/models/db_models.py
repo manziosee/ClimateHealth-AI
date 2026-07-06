@@ -130,6 +130,25 @@ class AlertSubscription(Base):
     )
 
 
+class ApiKey(Base):
+    """Issued API keys — raw key is never stored, only a SHA-256 hash."""
+    __tablename__ = "api_keys"
+
+    id:             Mapped[int]            = mapped_column(Integer, primary_key=True)
+    name:           Mapped[str]            = mapped_column(String(100), nullable=False)
+    key_prefix:     Mapped[str]            = mapped_column(String(12),  nullable=False)
+    key_hash:       Mapped[str]            = mapped_column(String(64),  nullable=False, unique=True)
+    is_active:      Mapped[bool]           = mapped_column(Boolean, default=True)
+    requests_total: Mapped[int]            = mapped_column(Integer, default=0)
+    last_used_at:   Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at:     Mapped[datetime]       = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_api_keys_key_hash", "key_hash"),
+        Index("ix_api_keys_is_active", "is_active"),
+    )
+
+
 class MonitoredLocation(Base):
     """Bulk monitoring — NGO-registered location lists for daily risk summaries."""
     __tablename__ = "monitored_locations"
