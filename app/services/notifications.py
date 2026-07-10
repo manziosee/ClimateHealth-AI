@@ -63,6 +63,30 @@ async def send_email_alert(to_email: str, payload: AlertPayload) -> bool:
         return False
 
 
+async def send_webhook_alert(webhook_url: str, payload: AlertPayload) -> bool:
+    """POST the alert payload as JSON to a webhook URL. Returns True on success."""
+    try:
+        import httpx
+        body = {
+            "event":            "high_risk_alert",
+            "disease":          payload.disease,
+            "risk_level":       payload.risk_level,
+            "expected_cases":   payload.expected_cases,
+            "location_name":    payload.location_name,
+            "lat":              payload.lat,
+            "lon":              payload.lon,
+            "recommended_action": payload.recommended_action,
+        }
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(webhook_url, json=body)
+            resp.raise_for_status()
+        logger.info("Webhook alert sent to %s for %s", webhook_url, payload.disease)
+        return True
+    except Exception as e:
+        logger.error("Webhook alert failed: %s", e)
+        return False
+
+
 async def send_sms_alert(to_phone: str, payload: AlertPayload) -> bool:
     """Send a high-risk outbreak SMS via Twilio. Returns True on success."""
     if not (settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_FROM_NUMBER):

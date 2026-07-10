@@ -111,4 +111,30 @@ async def api_key_middleware(request: Request, call_next):
         )
 
     await redis.setex(rkey, 60, "1")
+
+    # Fire-and-forget: update usage stats without blocking the request
+    import asyncio
+    asyncio.ensure_future(_bump_key_usage(key_hash))
+
     return await call_next(request)
+
+
+async def _bump_key_usage(key_hash: str) -> None:
+    """Increment requests_total and update last_used_at for a valid key."""
+    try:
+        from datetime import datetime, timezone
+        from sqlalchemy import select, update
+        from app.core.database import AsyncSessionLocal
+        from app.models.db_models import ApiKey
+        async with AsyncSessionLocal() as db:
+            await db.execute(
+                update(ApiKey)
+                .where(ApiKey.key_hash == key_hash)
+                .values(
+                    requests_total=ApiKey.requests_total + 1,
+                    last_used_at=datetime.now(timezone.utc),
+                )
+            )
+            await db.commit()
+    except Exception:
+        pass

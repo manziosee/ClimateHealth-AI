@@ -49,7 +49,7 @@ async def _run_subscription_alerts() -> None:
     from app.services import weather as weather_svc
     from app.services import predictor
     from app.services.geocoding import reverse_geocode
-    from app.services.notifications import send_email_alert, send_sms_alert, AlertPayload
+    from app.services.notifications import send_email_alert, send_sms_alert, send_webhook_alert, AlertPayload
     from app.api.v1.alerts import _action
 
     _THRESHOLD_ORDER = {"Low": 0, "Medium": 1, "High": 2}
@@ -90,6 +90,8 @@ async def _run_subscription_alerts() -> None:
                     await send_email_alert(sub.notify_email, payload)
                 if sub.notify_phone:
                     await send_sms_alert(sub.notify_phone, payload)
+                if sub.webhook_url:
+                    await send_webhook_alert(sub.webhook_url, payload)
 
                 # Update last_notified_at
                 async with AsyncSessionLocal() as db:

@@ -344,6 +344,65 @@ async def get_prediction(prediction_id: int, db: AsyncSession = Depends(get_db))
     return record
 
 
+# ─── Prediction Feedback ──────────────────────────────────────────────────────
+
+class FeedbackRequest(BaseModel):
+    observed_cases: int = Field(..., ge=0, description="Actual observed case count for this prediction period")
+    notes: str | None = Field(None, max_length=500)
+
+
+class FeedbackResponse(BaseModel):
+    id: int
+    prediction_id: int
+    observed_cases: int
+    predicted_cases: int
+    error: int
+    notes: str | None
+    submitted_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+@router.post("/{prediction_id}/feedback", response_model=FeedbackResponse, status_code=201)
+async def submit_feedback(
+    prediction_id: int,
+    body: FeedbackRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **Report the actual observed case count** for a previous prediction.
+
+    This feedback is stored in the `prediction_feedback` table and used to
+    track model accuracy over time. The response includes the prediction error
+    (`observed - predicted`) so you can see how far off the model was.
+
+    Use this after a disease situation resolves to record ground truth.
+    """
+    from app.models.db_models import PredictionFeedback
+    record = await db.get(Prediction, prediction_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Prediction not found.")
+
+    fb = PredictionFeedback(
+        prediction_id=prediction_id,
+        observed_cases=body.observed_cases,
+        notes=body.notes,
+    )
+    db.add(fb)
+    await db.commit()
+    await db.refresh(fb)
+
+    return FeedbackResponse(
+        id=fb.id,
+        prediction_id=fb.prediction_id,
+        observed_cases=fb.observed_cases,
+        predicted_cases=record.expected_cases,
+        error=body.observed_cases - record.expected_cases,
+        notes=fb.notes,
+        submitted_at=fb.submitted_at,
+    )
+
+
 @router.delete("/{prediction_id}", status_code=204)
 async def delete_prediction(
     prediction_id: int,

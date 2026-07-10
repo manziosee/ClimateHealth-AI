@@ -35,6 +35,9 @@ _EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
 _E164_RE  = re.compile(r'^\+[1-9]\d{6,14}$')
 
 
+_URL_RE = re.compile(r'^https?://.+')
+
+
 class SubscribeRequest(BaseModel):
     lat:          float  = Field(..., ge=-90, le=90)
     lon:          float  = Field(..., ge=-180, le=180)
@@ -42,6 +45,7 @@ class SubscribeRequest(BaseModel):
     threshold:    str    = Field(default="High", pattern="^(High|Medium)$")
     notify_email: str | None = None
     notify_phone: str | None = None
+    webhook_url:  str | None = Field(None, description="HTTPS URL to POST the alert payload to")
 
     @field_validator("notify_email")
     @classmethod
@@ -57,6 +61,13 @@ class SubscribeRequest(BaseModel):
             raise ValueError("Phone must be E.164 format, e.g. +250788123456")
         return v
 
+    @field_validator("webhook_url")
+    @classmethod
+    def validate_webhook(cls, v: str | None) -> str | None:
+        if v is not None and not _URL_RE.match(v):
+            raise ValueError("webhook_url must start with http:// or https://")
+        return v
+
 
 class SubscriptionResponse(BaseModel):
     id: int
@@ -67,6 +78,7 @@ class SubscriptionResponse(BaseModel):
     threshold: str
     notify_email: str | None
     notify_phone: str | None
+    webhook_url:  str | None
     active: bool
     created_at: datetime
 
@@ -86,16 +98,20 @@ async def create_subscription(
     and sends email/SMS if the predicted risk meets or exceeds the threshold.
 
     - `threshold`: `High` (default) or `Medium`
-    - At least one of `notify_email` or `notify_phone` must be provided.
+    - At least one of `notify_email`, `notify_phone`, or `webhook_url` must be provided.
     """
-    if not body.notify_email and not body.notify_phone:
-        raise HTTPException(status_code=422, detail="Provide at least notify_email or notify_phone.")
+    if not body.notify_email and not body.notify_phone and not body.webhook_url:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide at least one of notify_email, notify_phone, or webhook_url.",
+        )
 
     location_name, _ = await reverse_geocode(body.lat, body.lon)
     sub = AlertSubscription(
         lat=body.lat, lon=body.lon, location_name=location_name,
         disease=body.disease, threshold=body.threshold,
         notify_email=body.notify_email, notify_phone=body.notify_phone,
+        webhook_url=body.webhook_url,
         active=True,
     )
     db.add(sub)

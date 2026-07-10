@@ -12,7 +12,7 @@ router = APIRouter(tags=["health"])
 _START_TIME = time.time()
 
 MODEL_DIR = Path(__file__).parent.parent.parent / "ml" / "saved_models"
-DISEASES  = ["malaria", "flu", "cholera"]
+DISEASES  = ["malaria", "flu", "cholera", "dengue", "pneumonia", "meningitis"]
 MODELS    = [f"{d}_{t}.pkl" for d in DISEASES for t in ["xgb", "rf"]]
 
 
@@ -43,7 +43,7 @@ async def health(db: AsyncSession = Depends(get_db), redis=Depends(get_redis)):
     return {
         "status":      overall,
         "environment": settings.APP_ENV,
-        "version":     "1.1.0",
+        "version":     "1.4.0",
         "uptime_s":    uptime_seconds,
         "services": {
             "database": {"ok": db_ok,    "latency_ms": db_latency},

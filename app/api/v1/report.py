@@ -5,11 +5,12 @@ Returns an all-diseases risk snapshot for a country using its capital city
 as the reference coordinate. Runs 6 disease predictions in one call.
 Cached 1 hour per country.
 """
+import asyncio
 import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Body, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import get_redis
@@ -95,6 +96,27 @@ _COUNTRIES: dict[str, tuple[str, str, float, float]] = {
     "ZWE": ("Zimbabwe",                 "Harare",          -17.83,   31.05),
 }
 
+# ISO 3166-1 alpha-3 → alpha-2 (World Bank API uses alpha-2)
+_ALPHA2: dict[str, str] = {
+    "AFG": "AF", "AGO": "AO", "ARG": "AR", "AUS": "AU",
+    "BDI": "BI", "BEN": "BJ", "BFA": "BF", "BGD": "BD",
+    "BOL": "BO", "BRA": "BR", "CAF": "CF", "CIV": "CI",
+    "CMR": "CM", "COD": "CD", "COG": "CG", "COL": "CO",
+    "DEU": "DE", "EGY": "EG", "ETH": "ET", "FRA": "FR",
+    "GBR": "GB", "GHA": "GH", "GIN": "GN", "GTM": "GT",
+    "HND": "HN", "HTI": "HT", "IDN": "ID", "IND": "IN",
+    "IRN": "IR", "IRQ": "IQ", "KEN": "KE", "KHM": "KH",
+    "LAO": "LA", "LBR": "LR", "LKA": "LK", "MDG": "MG",
+    "MEX": "MX", "MLI": "ML", "MOZ": "MZ", "MRT": "MR",
+    "MWI": "MW", "MYS": "MY", "NER": "NE", "NGA": "NG",
+    "NPL": "NP", "PAK": "PK", "PER": "PE", "PHL": "PH",
+    "PNG": "PG", "PRY": "PY", "RWA": "RW", "SDN": "SD",
+    "SEN": "SN", "SLE": "SL", "SOM": "SO", "SSD": "SS",
+    "TCD": "TD", "TGO": "TG", "THA": "TH", "TZA": "TZ",
+    "UGA": "UG", "USA": "US", "VEN": "VE", "VNM": "VN",
+    "YEM": "YE", "ZAF": "ZA", "ZMB": "ZM", "ZWE": "ZW",
+}
+
 
 class DiseaseRisk(BaseModel):
     disease: str
@@ -169,7 +191,7 @@ async def country_risk_report(
     country_name, capital, lat, lon = _COUNTRIES[cc]
 
     weather     = await weather_svc.fetch_weather(lat, lon)
-    pop_density = await _resolve_population_density(None, cc, redis)
+    pop_density = await _resolve_population_density(None, _ALPHA2.get(cc, cc), redis)
 
     disease_risks: list[DiseaseRisk] = []
     for disease in _DISEASES:
@@ -207,3 +229,56 @@ async def country_risk_report(
     )
     await redis.setex(cache_key, 3600, response.model_dump_json())
     return response
+
+
+# ─── Batch Country Report ─────────────────────────────────────────────────────
+
+class BatchReportRequest(BaseModel):
+    country_codes: list[str] = Field(..., min_length=1, max_length=10)
+
+
+class BatchReportResponse(BaseModel):
+    requested: int
+    results: list[CountryReportResponse]
+    errors: dict[str, str]
+    generated_at: datetime
+
+
+@router.post("/batch", response_model=BatchReportResponse)
+async def batch_country_report(
+    body: BatchReportRequest,
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+):
+    """
+    **Batch country risk reports** — up to 10 countries in one request.
+
+    Runs all 6 disease predictions per country in parallel. Countries not in the
+    supported list are returned in the `errors` map instead of raising 422.
+    Results for valid countries are identical to `GET /report/{country_code}`.
+    """
+    async def _fetch_one(cc: str):
+        try:
+            result = await country_risk_report(cc, db=db, redis=redis)
+            return cc, result, None
+        except HTTPException as exc:
+            return cc, None, exc.detail
+        except Exception as exc:
+            return cc, None, str(exc)
+
+    tasks = [_fetch_one(code.upper()) for code in body.country_codes]
+    outcomes = await asyncio.gather(*tasks)
+
+    results, errors = [], {}
+    for cc, report, err in outcomes:
+        if err:
+            errors[cc] = err
+        else:
+            results.append(report)
+
+    return BatchReportResponse(
+        requested=len(body.country_codes),
+        results=results,
+        errors=errors,
+        generated_at=datetime.now(timezone.utc),
+    )

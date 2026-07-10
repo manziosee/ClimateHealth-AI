@@ -120,6 +120,7 @@ class AlertSubscription(Base):
     threshold: Mapped[str] = mapped_column(String(20), default="High")  # High | Medium
     notify_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     notify_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    webhook_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -146,6 +147,21 @@ class ApiKey(Base):
     __table_args__ = (
         Index("ix_api_keys_key_hash", "key_hash"),
         Index("ix_api_keys_is_active", "is_active"),
+    )
+
+
+class PredictionFeedback(Base):
+    """Observed case counts reported against a prediction — enables accuracy tracking."""
+    __tablename__ = "prediction_feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    prediction_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    observed_cases: Mapped[int] = mapped_column(Integer, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_prediction_feedback_prediction_id", "prediction_id"),
     )
 
 
